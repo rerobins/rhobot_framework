@@ -30,6 +30,7 @@ class RhoBot(sleekxmpp.ClientXMPP):
         self.register_plugin('xep_0199')  # XMPP Ping
         self.register_plugin('rho_bot_configuration', module='rhobot.components.configuration')
         self.register_plugin('rho_bot_roster', module='rhobot.components.roster')
+        self.register_plugin('reset_configuration', module='rhobot.components.commands')
 
         # The session_start event will be triggered when
         # the bot establishes its connection with the server

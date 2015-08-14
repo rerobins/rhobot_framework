@@ -1,0 +1,2 @@
+from rhobot.components.commands.base_command import BaseCommand
+from rhobot.components.commands.reset_configuration import reset_configuration
