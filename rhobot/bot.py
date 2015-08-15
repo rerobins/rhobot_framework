@@ -28,8 +28,9 @@ class RhoBot(sleekxmpp.ClientXMPP):
         sleekxmpp.ClientXMPP.__init__(self, jid, password)
 
         self.register_plugin('xep_0199')  # XMPP Ping
-        self.register_plugin('rho_bot_configuration', module='rhobot.components.configuration')
-        self.register_plugin('rho_bot_roster', module='rhobot.components.roster')
+        self.register_plugin('rho_bot_scheduler', module='rhobot.components')
+        self.register_plugin('rho_bot_configuration', module='rhobot.components')
+        self.register_plugin('rho_bot_roster', module='rhobot.components')
         self.register_plugin('reset_configuration', module='rhobot.components.commands')
 
         # The session_start event will be triggered when
@@ -37,7 +38,7 @@ class RhoBot(sleekxmpp.ClientXMPP):
         # and the XML streams are ready for use. We want to
         # listen for this event so that we we can initialize
         # our roster.
-        self.add_event_handler("session_start", self.start)
+        self.add_event_handler('session_start', self.start)
 
     def start(self, event):
         """
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option('-c', dest="filename", help="Configuration file for the bot", default='rhobot.conf')
+    parser.add_option('-c', dest='filename', help='Configuration file for the bot', default='rhobot.conf')
     (options, args) = parser.parse_args()
 
     configuration.load_file(options.filename)
@@ -71,4 +72,4 @@ if __name__ == '__main__':
     if xmpp.connect():
         xmpp.process(block=True)
     else:
-        print("Unable to connect.")
+        print('Unable to connect.')
