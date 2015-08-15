@@ -47,6 +47,7 @@ register_stanza_plugin(ConfigurationStanza, EntryStanza, iterable=True)
 class BotConfiguration(base_plugin):
 
     CONFIGURATION_RECEIVED_EVENT = 'rho::configuration_received'
+    CONFIGURATION_UPDATED_EVENT = 'rho::configuration_updated'
     _configuration_data_node = 'rho:configuration'
     name = 'rho_bot_configuration'
     dependencies = {'xep_0060'}
@@ -149,6 +150,8 @@ class BotConfiguration(base_plugin):
 
         self.xmpp['xep_0060'].publish(jid=self.xmpp.boundjid.bare, payload=configuration_stanza,
                                       node=self._configuration_data_node)
+
+        self.xmpp.event(self.CONFIGURATION_UPDATED_EVENT)
 
     def get_configuration(self):
         """
