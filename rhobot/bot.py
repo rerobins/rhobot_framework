@@ -32,6 +32,8 @@ class RhoBot(sleekxmpp.ClientXMPP):
         self.register_plugin('rho_bot_configuration', module='rhobot.components')
         self.register_plugin('rho_bot_roster', module='rhobot.components')
         self.register_plugin('reset_configuration', module='rhobot.components.commands')
+        self.register_plugin('export_configuration', module='rhobot.components.commands')
+        self.register_plugin('import_configuration', module='rhobot.components.commands')
 
         # The session_start event will be triggered when
         # the bot establishes its connection with the server
