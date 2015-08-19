@@ -1,1 +1,1 @@
-__author__ = 'rerobins'
+from rhobot.components.storage.client import StoragePayload

@@ -14,4 +14,9 @@ class Commands(Enum):
 @unique
 class UpdateFlags(Enum):
     # Should the node have it's data removed before the new data is inserted into the data.  This should be a boolean.
-    CLEAR_NODE_BEFORE_WRITE = 'clear_node_before_write'
+    CLEAR_NODE_BEFORE_WRITE = dict(var='clear_node_before_write', type='boolean', default=False)
+
+@unique
+class FindFlags(Enum):
+    # Should the node be created if it isn't found.  This should be a boolean.
+    CREATE_IF_MISSING = dict(var='create_if_missing', type='boolean', default=False)

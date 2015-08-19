@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name='rhobot',
     version='1.0.0',
-    packages=['rhobot', 'rhobot.components'],
+    packages=['rhobot', 'rhobot.components', 'rhobot.components.commands', 'rhobot.components.storage', ],
     url='',
     license='BSD',
     author='Robert Robinson',

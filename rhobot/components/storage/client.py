@@ -2,9 +2,11 @@
 Module that will be used to help storage clients connect to a data store.
 """
 import logging
+import enum
 from rdflib.namespace import RDFS, RDF
 from sleekxmpp.plugins.base import base_plugin
 from rhobot.components.storage.enums import Commands
+from rhobot.components.storage.events import STORAGE_FOUND, STORAGE_LOST
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,7 @@ class StoragePayload:
         self._types = []
         self._properties = {}
         self._references = {}
+        self._unpack_payload()
 
     def add_type(self, *args):
         """
@@ -27,7 +30,8 @@ class StoragePayload:
         :param args:
         :return:
         """
-        self._types += args
+        for arg in args:
+            self._types.append(str(arg))
 
     def add_property(self, key, value):
         """
@@ -42,7 +46,7 @@ class StoragePayload:
         if not isinstance(value, list):
             value = [value]
 
-        self._properties += value
+        self._properties[key] += value
 
     def add_reference(self, key, value):
         """
@@ -59,7 +63,7 @@ class StoragePayload:
 
         self._references[key] = value
 
-    def __populate_payload(self):
+    def _populate_payload(self):
         """
         Translates the contents of this object into a payload for sending across to the storage entity.
         :return: the populated form
@@ -68,7 +72,7 @@ class StoragePayload:
             self._container.add_field(var=str(RDF.about), value=[self.about], ftype=str(RDFS.Literal))
 
         if len(self._types):
-            self._container.add_field(var=str(RDF.type), value=self._types, ftype=str(RDFS.type))
+            self._container.add_field(var=str(RDF.type), value=self._types, ftype=str(RDF.type))
 
         for key, value in self._properties.iteritems():
             self._container.add_field(var=str(key), value=value, ftype=str(RDFS.Literal))
@@ -77,6 +81,34 @@ class StoragePayload:
             self._container.add_field(var=str(key), value=value, ftype=str(RDFS.Resource))
 
         return self._container
+
+    def _unpack_payload(self):
+        """
+        Unpack the current container to class variables.
+        """
+        self.about = None
+        self._types = []
+        self._properties = {}
+        self._references = {}
+
+        for key, value in self._container.field.iteritems():
+            if key == str(RDF.about):
+                self.about = value.get_value()[0]
+            elif value['type'] == str(RDF.type):
+                self._types = value.get_value()
+            elif value['type'] == str(RDFS.Literal):
+                self._properties[key] = value.get_value()
+            elif value['type'] == str(RDFS.Resource):
+                self._references[key] = value.get_value()
+
+    def types(self):
+        return self._types
+
+    def properties(self):
+        return self._properties
+
+    def references(self):
+        return self._references
 
 
 class StorageClient(base_plugin):
@@ -117,6 +149,7 @@ class StorageClient(base_plugin):
         :return:
         """
         logger.info('Found a store: %s' % data)
+        self.xmpp.event(STORAGE_FOUND)
         self._storage_jid = data
 
     def _store_left(self, data):
@@ -128,6 +161,14 @@ class StorageClient(base_plugin):
         """
         if self._storage_jid == data:
             self._storage_jid = None
+            self.xmpp.event(STORAGE_LOST)
+
+    def has_store(self):
+        """
+        Is there a storage bot associated with this client.
+        :return:
+        """
+        return self._storage_jid is not None
 
     def create_node(self, payload):
         """
@@ -135,20 +176,48 @@ class StorageClient(base_plugin):
         :param payload: payload to store in the data store.
         :return:
         """
-        storage = payload.__populate_payload()
+        storage = payload._populate_payload()
 
-        session = dict(next=self._store_result,
-                       error=self._store_error,
-                       payload=[storage])
+        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CREATE_NODE.value,
+                                                    payload=storage, flow=False)
 
-        self.xmpp['xep_0050'].start_command(jid=self._storage_jid, node=Commands.CREATE_NODE.value, session=session)
+        # This command will return the URI of the node that was inserted into the database.
+        uri = result['command']['form'].get_items()[0][str(RDF.about)]
 
-    def _store_result(self, iq, session):
-        logger.info('Store Result iq: %s' % iq)
-        logger.info('Store Result session: %s' % session)
+        return uri
 
-    def _store_error(self, iq, session):
-        logger.info('Store Error iq: %s' % iq)
-        logger.info('Store Error session: %s' % session)
+    def find_nodes(self, payload, **params):
+        storage = payload._populate_payload()
+
+        _build_property_fields(storage, params)
+
+        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.FIND_NODE.value,
+                                                    payload=storage, flow=False)
+
+        logger.info('result: %s' % result)
+
+        return result
+
+    def update_node(self, payload, **params):
+
+        storage = payload._populate_payload()
+
+        _build_property_fields(storage, params)
+
+        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.UPDATE_NODE.value,
+                                                    payload=storage, flow=False)
+
+        logger.info('result: %s' % result)
+
+        return result
+
 
 rho_bot_storage_client = StorageClient
+
+def _build_property_fields(form, params):
+
+    for key, value in params.iteritems():
+        if isinstance(key, enum.Enum):
+            form.add_field(var=key.value['var'], value=value, type=key.type)
+        else:
+            form.add_field(var=key, value=value, type='hidden')
