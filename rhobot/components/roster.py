@@ -39,6 +39,11 @@ class RosterComponent(base_plugin):
         self.xmpp.add_event_handler(self.xmpp['rho_bot_configuration'].CONFIGURATION_RECEIVED_EVENT, self._join_room)
 
     def _join_room(self, event):
+        """
+        Join the channel that is configured by the bot.
+        :param event: ignored.
+        :return:
+        """
         self.xmpp['xep_0045'].joinMUC(self._channel_name, self._nick, wait=True)
 
         self.xmpp.add_event_handler("muc::%s::got_online" % self._channel_name,
@@ -48,7 +53,13 @@ class RosterComponent(base_plugin):
                                     self._offline_helper)
 
     def add_message_received_listener(self, callback, ignore_self=True):
-
+        """
+        Adds a message received listener to the messages that are published to the channel.
+        :param callback: callback that will be notified of new messages.
+        :param ignore_self: should all of the messages that are sent by this bot ignored before giving them to the
+        handler.
+        :return:
+        """
         if ignore_self:
             self.xmpp.add_event_handler("muc::%s::message" % self._channel_name,
                                         self._generate_callback_ignore_self(callback))
@@ -56,9 +67,16 @@ class RosterComponent(base_plugin):
             self.xmpp.add_event_handler("muc::%s::message" % self._channel_name,
                                         callback)
 
-    def send_message(self, body='Some Data', payload=None, payload_name=None, thread_id=None):
+    def send_message(self, body='Some Data', payload=None, thread_id=None):
+        """
+        Send a message to the channel.
+        :param body: body of the message.
+        :param payload: payload that should be appended to the message.
+        :param thread_id: threadi identifier if necessary.
+        :return: None
+        """
         message = self.xmpp.make_message(mto=self._channel_name, mbody=body, mtype='groupchat')
-        if payload_name and payload:
+        if payload:
             message.append(payload)
 
         if thread_id:
@@ -115,7 +133,11 @@ class RosterComponent(base_plugin):
         logger.info('Received: %s' % self._presence_objects)
 
     def _generate_callback_ignore_self(self, callback):
-
+        """
+        Generate a callback that will be used in order to ignore all of the echo messages.
+        :param callback: callback that will be notified if the message is not sent by this bot.
+        :return:
+        """
         def new_callback(message):
 
             if message['mucnick'] != self._nick:
