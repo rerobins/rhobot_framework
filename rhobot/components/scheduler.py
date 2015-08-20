@@ -3,6 +3,9 @@ Wraps scheduling functionality.
 """
 from sleekxmpp.plugins.base import base_plugin
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 def _generate_cancel_method(scheduler_name, scheduler):
     """
@@ -17,6 +20,90 @@ def _generate_cancel_method(scheduler_name, scheduler):
         scheduler.remove(scheduler_name)
 
     return cancel
+
+class Deferred:
+
+    def __init__(self, method_call, scheduler, promise=None):
+        self._method_call = method_call
+        if promise:
+            self._promise = promise
+        else:
+            self._promise = Promise(scheduler)
+
+    def promise(self):
+        return self._promise
+
+    def __call__(self, *args, **kwargs):
+        logger.info('Executing call method')
+
+        try:
+            result = self._method_call()
+            logger.info('Resolving promise')
+            self._promise.resolved(result)
+        except Exception as e:
+            logger.info('Rejecting promise')
+            self._promise.rejected(e)
+
+
+class Promise:
+
+    def __init__(self, scheduler):
+
+        self._queue = []
+
+        self._result = None
+        self._error = None
+        self._scheduler = scheduler
+        self._child_promise = None
+
+    def then(self, fulfilled=None, rejected=None):
+
+        new_promise = Promise(self._scheduler)
+
+        # If the promise hasn't been resolved, add it to the queue, otherwise fire off the new deferred.
+        if not(self._result or self._error):
+            self._queue.append((fulfilled, rejected, new_promise))
+        elif self._result:
+            if fulfilled:
+                deferred = Deferred(lambda: fulfilled(self._result), self._scheduler, new_promise)
+            self._scheduler.schedule_task(deferred, delay=0.0)
+        elif self._error:
+            if rejected:
+                self._scheduler.schedule_task(lambda: rejected(self._error), delay=0.0)
+            self._scheduler.schedule_task(lambda: new_promise.rejected(self._error), delay=0.0)
+
+        return new_promise
+
+    def resolved(self, result):
+        if not (self._result or self._error):
+            self._result = result
+
+            # schedule the fulfilled method call.
+
+            for fulfilled, rejected, promise in self._queue:
+                if fulfilled:
+                    deferred = Deferred(lambda: fulfilled(self._result), self._scheduler, promise)
+                    self._scheduler.schedule_task(deferred, delay=0.0)
+                else:
+                    self._scheduler.schedule_task(lambda: promise.resolved(self._result), delay=0.0)
+        else:
+            pass
+
+        self._queue = None
+
+    def rejected(self, error):
+        if not (self._result or self._error):
+            self._error = error
+            # schedule the rejected method call
+            for fulfilled, rejected, promise in self._queue:
+                if rejected:
+                    self._scheduler.schedule_task(lambda: rejected(self._error), delay=0.0)
+                self._scheduler.schedule_task(lambda: promise.rejected(self._error), delay=0.0)
+        else:
+            pass
+
+        self._queue = None
+
 
 class Scheduler(base_plugin):
     """
@@ -47,6 +134,15 @@ class Scheduler(base_plugin):
         self.xmpp.schedule(task_name, delay, callback, repeat=repeat)
 
         return _generate_cancel_method(task_name, self.xmpp.scheduler)
+
+    def defer(self, method):
+        deferred = Deferred(method, self)
+
+        logger.info('Scheduling task')
+        self.schedule_task(deferred, delay=0.0)
+
+        logger.info('Returning promise')
+        return deferred.promise()
 
 
 # Define the plugin that will be used to access this plugin.
