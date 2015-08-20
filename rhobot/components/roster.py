@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class RosterComponent(base_plugin):
 
+    CHANNEL_JOINED = 'rho::joined_channel'
     PRESENCE_ONLINE = 'online:%s'
     PRESENCE_OFFLINE = 'offline:%s'
 
@@ -46,6 +47,25 @@ class RosterComponent(base_plugin):
         self.xmpp.add_event_handler("muc::%s::got_offline" % self._channel_name,
                                     self._offline_helper)
 
+    def add_message_received_listener(self, callback, ignore_self=True):
+
+        if ignore_self:
+            self.xmpp.add_event_handler("muc::%s::message" % self._channel_name,
+                                        self._generate_callback_ignore_self(callback))
+        else:
+            self.xmpp.add_event_handler("muc::%s::message" % self._channel_name,
+                                        callback)
+
+    def send_message(self, body='Some Data', payload=None, payload_name=None, thread_id=None):
+        message = self.xmpp.make_message(mto=self._channel_name, mbody=body, mtype='groupchat')
+        if payload_name and payload:
+            message.append(payload)
+
+        if thread_id:
+            message['thread'] = thread_id
+
+        message.send()
+
     def _online_helper(self, presence):
         """
         Handler for online presence information.
@@ -54,6 +74,7 @@ class RosterComponent(base_plugin):
         """
         if presence['muc']['nick'] == self._nick:
             logger.info('Self')
+            self.xmpp.event(self.CHANNEL_JOINED)
         else:
             logger.info('Joined Room: %s' % presence)
 
@@ -92,5 +113,14 @@ class RosterComponent(base_plugin):
                     self.xmpp.event(self.PRESENCE_ONLINE % key, info['from'])
 
         logger.info('Received: %s' % self._presence_objects)
+
+    def _generate_callback_ignore_self(self, callback):
+
+        def new_callback(message):
+
+            if message['mucnick'] != self._nick:
+                callback(message)
+
+        return new_callback
 
 rho_bot_roster = RosterComponent
