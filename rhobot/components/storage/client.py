@@ -68,6 +68,8 @@ class StoragePayload:
         Translates the contents of this object into a payload for sending across to the storage entity.
         :return: the populated form
         """
+        self._container.clear()
+
         if self.about:
             self._container.add_field(var=str(RDF.about), value=[self.about], ftype=str(RDFS.Literal))
 
