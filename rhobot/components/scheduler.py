@@ -38,11 +38,28 @@ class Deferred:
 
         try:
             result = self._method_call()
-            logger.info('Resolving promise')
-            self._promise.resolved(result)
-        except Exception as e:
+            try:
+                result.then(_generate_promise_fulfilled_ripple(self._promise),
+                            _generate_promise_rejected_ripple(self._promise))
+            except AttributeError:
+                self._promise.resolved(result)
+        except DeprecationWarning as e:
             logger.info('Rejecting promise')
             self._promise.rejected(e)
+
+def _generate_promise_fulfilled_ripple(child_promise):
+
+    def fulfilled(result):
+        child_promise.resolved(result)
+
+    return fulfilled
+
+def _generate_promise_rejected_ripple(child_promise):
+
+    def rejected(error):
+        child_promise.rejected(error)
+
+    return rejected
 
 
 class Promise:
@@ -66,7 +83,7 @@ class Promise:
         elif self._result:
             if fulfilled:
                 deferred = Deferred(lambda: fulfilled(self._result), self._scheduler, new_promise)
-            self._scheduler.schedule_task(deferred, delay=0.0)
+                self._scheduler.schedule_task(deferred, delay=0.0)
         elif self._error:
             if rejected:
                 self._scheduler.schedule_task(lambda: rejected(self._error), delay=0.0)
@@ -135,7 +152,7 @@ class Scheduler(base_plugin):
 
         return _generate_cancel_method(task_name, self.xmpp.scheduler)
 
-    def defer(self, method):
+    def defer(self, method, *args, **kwargs):
         deferred = Deferred(method, self)
 
         logger.info('Scheduling task')
@@ -143,6 +160,9 @@ class Scheduler(base_plugin):
 
         logger.info('Returning promise')
         return deferred.promise()
+
+    def promise(self):
+        return Promise(self)
 
 
 # Define the plugin that will be used to access this plugin.
