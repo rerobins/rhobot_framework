@@ -1,1 +1,1 @@
-from rhobot.components.storage.client import StoragePayload
+from rhobot.components.storage.payload import StoragePayload, ResultCollectionPayload, ResultPayload

@@ -19,7 +19,7 @@ from sleekxmpp.plugins.xep_0004.stanza.form import Form
 from sleekxmpp import Message
 from rhobot.components.roster import RosterComponent
 from rhobot.components.scheduler import Promise
-from rdflib.namespace import RDF
+from rhobot.components.storage import ResultCollectionPayload
 import logging
 import uuid
 
@@ -68,15 +68,12 @@ class RDFPublish(base_plugin):
         """
         Send out an rdf request for the provided payload.
         :param payload: the payload to serialize and then
-        :param callback: call back to notify when the results come in.  Callback will be provided with one of two
-        parameters, payload, or timeout (bool).  If the timeout is true, then there should be no payload, otherwise
-        payload should be not None.
         :param timeout: the timeout that will be used to cancel the request.
-        :return:
+        :return: a promise
         """
         rdf_stanza = RDFStanza()
         rdf_stanza['command'] = 'request'
-        rdf_stanza.append(payload._populate_payload())
+        rdf_stanza.append(payload.populate_payload())
 
         thread_identifier = str(uuid.uuid4())
 
@@ -117,7 +114,7 @@ class RDFPublish(base_plugin):
                     logger.info('response')
                     rdf_stanza = RDFStanza()
                     rdf_stanza['command'] = 'response'
-                    rdf_stanza.append(response)
+                    rdf_stanza.append(response.populate_payload())
                     self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza,
                                                              thread_id=message.get('thread', None))
         elif command_type == 'response':
@@ -147,9 +144,10 @@ class RDFPublish(base_plugin):
 
         def single_fetch(rdf):
             form = rdf['form']
+            results_collection = ResultCollectionPayload(form)
             data = []
-            for record in form.get_items():
-                data.append(record[str(RDF.about)])
+            for record in results_collection.results():
+                data.append(record.about)
 
             promise.resolved(data)
             del self._pending_requests[thread_identifier]
