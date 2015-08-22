@@ -36,9 +36,11 @@ class StoragePayload:
             self._properties[key] = []
 
         if not isinstance(value, list):
-            value = [value]
+            value = [str(value)]
 
-        self._properties[key] += value
+        current_values = self._properties[key]
+        for val in value:
+            current_values.append(str(val))
 
     def add_reference(self, key, value):
         """
@@ -53,7 +55,9 @@ class StoragePayload:
         if not isinstance(value, list):
             value = [value]
 
-        self._references[key] = value
+        current_values = self._references[key]
+        for val in value:
+            current_values.append(str(val))
 
     def populate_payload(self):
         """
