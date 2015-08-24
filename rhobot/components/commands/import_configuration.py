@@ -48,7 +48,7 @@ class ImportConfiguration(BaseCommand):
 
         configuration_object.update(configuration_dictionary)
 
-        self.xmpp['rho_bot_configuration'].store_results()
+        self.xmpp['rho_bot_configuration'].store_data()
 
         session['notes'] = (('info', 'Results imported to database',),)
         session['has_next'] = False
