@@ -22,8 +22,16 @@ from rhobot.components.scheduler import Promise
 from rhobot.components.storage import ResultCollectionPayload
 import logging
 import uuid
+from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+class RDFStanzaType(Enum):
+    REQUEST = 'request'
+    RESPONSE = 'response'
+    CREATE = 'create'
+    UPDATE = 'update'
 
 
 class RDFStanza(ElementBase):
@@ -36,7 +44,7 @@ class RDFStanza(ElementBase):
     name = 'rdf'
     namespace = 'rho:rdf'
     plugin_attrib = 'rdf'
-    interfaces = {'command', }
+    interfaces = {'type', }
 
 
 class RDFPublish(base_plugin):
@@ -46,13 +54,19 @@ class RDFPublish(base_plugin):
     description = 'Configuration Plugin'
 
     def plugin_init(self):
+        """
+        Initialize instance variables for the service.
+        :return:
+        """
         register_stanza_plugin(Message, RDFStanza)
         register_stanza_plugin(RDFStanza, Form)
 
         self.xmpp.add_event_handler(RosterComponent.CHANNEL_JOINED, self._channel_joined)
 
         self._pending_requests = dict()
-        self._handlers = []
+        self._request_handlers = []
+        self._create_handlers = []
+        self._update_handlers = []
 
     def _channel_joined(self, event):
         """
@@ -62,7 +76,7 @@ class RDFPublish(base_plugin):
         :return: None
         """
         logger.info('Joined the registration channel')
-        self.xmpp['rho_bot_roster'].add_message_received_listener(self._receive_request_message)
+        self.xmpp['rho_bot_roster'].add_message_received_listener(self._receive_message)
 
     def send_out_request(self, payload, timeout=10.0):
         """
@@ -71,60 +85,151 @@ class RDFPublish(base_plugin):
         :param timeout: the timeout that will be used to cancel the request.
         :return: a promise
         """
-        rdf_stanza = RDFStanza()
-        rdf_stanza['command'] = 'request'
-        rdf_stanza.append(payload.populate_payload())
-
         thread_identifier = str(uuid.uuid4())
 
         promise = Promise(self.xmpp['rho_bot_scheduler'])
 
         self._pending_requests[thread_identifier] = self._generate_single_fetch(promise, thread_identifier)
 
-        self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza, thread_id=thread_identifier)
+        self._send_message(mtype=RDFStanzaType.REQUEST, payload=payload, thread_id=thread_identifier)
 
         self.xmpp['rho_bot_scheduler'].schedule_task(callback=self._generate_cancel_event(promise, thread_identifier),
                                                      delay=timeout)
 
         return promise
 
-    def add_message_handler(self, callback):
+    def publish_create(self, payload):
+        """
+        Publish a create message.
+        :param payload:
+        :return:
+        """
+        self._send_message(mtype=RDFStanzaType.CREATE, payload=payload)
+
+    def publish_update(self, payload):
+        """
+        Publish an update message.
+        :param payload:
+        :return:
+        """
+        self._send_message(mtype=RDFStanzaType.UPDATE, payload=payload)
+
+    def add_request_handler(self, callback):
         """
         Add a message handler for all of the rdf requests.
         :param callback:
         :return:
         """
-        self._handlers.append(callback)
+        self._request_handlers.append(callback)
 
-    def _receive_request_message(self, message):
+    def add_create_handler(self, callback):
+        """
+        Add a message handler for all of the create notifications.
+        :param callback:
+        :return:
+        """
+        self._create_handlers.append(callback)
+
+    def add_update_handler(self, callback):
+        """
+        Add a message handler for all of the delete notifications.
+        :param callback:
+        :return:
+        """
+        self._update_handlers.append(callback)
+
+    def _send_message(self, mtype='ignore', payload=None, thread_id=None):
+        """
+        Create and RDF message and populate it with the payload for transmission.
+        :param mtype:
+        :param payload:
+        :param thread_id:
+        :return:
+        """
+        rdf_stanza = RDFStanza()
+        if isinstance(mtype, RDFStanzaType):
+            rdf_stanza['type'] = mtype.value
+        else:
+            rdf_stanza['type'] = mtype
+
+        if payload:
+            rdf_stanza.append(payload.populate_payload())
+
+        self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza,
+                                                 thread_id=thread_id)
+
+    def _receive_message(self, message):
         """
         Receive a message from the channel.  This should see if there is a new request that is pending and will execute
         all of the message handlers that have been assigned to this handler.
         :param message: incoming message from the channel.
         :return:
         """
-        logger.info('Received a request message: %s' % message)
+        logger.debug('Received a request message: %s' % message)
 
         rdf_payload = message.get('rdf')
-        command_type = rdf_payload.get('command', 'ignore')
-        if command_type == 'request':
-            for handler in self._handlers:
-                response = handler(rdf_payload)
-                if response:
-                    logger.info('response')
-                    rdf_stanza = RDFStanza()
-                    rdf_stanza['command'] = 'response'
-                    rdf_stanza.append(response.populate_payload())
-                    self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza,
-                                                             thread_id=message.get('thread', None))
-        elif command_type == 'response':
-            thread_identifier = message.get('thread', None)
-            if thread_identifier:
-                callback = self._pending_requests.get(thread_identifier, None)
-                if callback:
-                    callback(rdf_payload)
-        else:
-            logger.info('Ignoring message')
+        message_type = rdf_payload.get('type', 'ignore')
+
+        try:
+            message_type = RDFStanzaType(message_type)
+
+            if message_type == RDFStanzaType.REQUEST:
+                self._request(message, rdf_payload)
+            elif message_type == RDFStanzaType.RESPONSE:
+                self._response(message, rdf_payload)
+            elif message_type == RDFStanzaType.CREATE:
+                self._create(message, rdf_payload)
+            elif message_type == RDFStanzaType.UPDATE:
+                self._update(message, rdf_payload)
+        except ValueError:
+            logger.error('Unknown message type: %s' % message_type)
+
+    def _request(self, message, rdf_payload):
+        """
+        Handle request messages.
+        :param message:
+        :param rdf_payload:
+        :return:
+        """
+        for handler in self._request_handlers:
+            response = handler(rdf_payload)
+            if response:
+                logger.info('response')
+                self._send_message(mtype=RDFStanzaType.RESPONSE, payload=response,
+                                   thread_id=message.get('thread', None))
+
+    def _response(self, message, rdf_payload):
+        """
+        Handle the response messages.
+        :param message:
+        :param rdf_payload:
+        :return:
+        """
+        thread_identifier = message.get('thread', None)
+        if thread_identifier:
+            callback = self._pending_requests.get(thread_identifier, None)
+            if callback:
+                callback(rdf_payload)
+
+    def _create(self, message, rdf_payload):
+        """
+        Handle create messages.
+        :param message:
+        :param rdf_payload:
+        :return:
+        """
+        for handler in self._create_handlers:
+            handler(rdf_payload)
+
+    def _update(self, message, rdf_payload):
+        """
+        Handle update messages.
+        :param message:
+        :param rdf_payload:
+        :return:
+        """
+        for handler in self._update_handlers:
+            handler(rdf_payload)
 
     def _generate_cancel_event(self, promise, request_identifier):
         """
@@ -141,6 +246,13 @@ class RDFPublish(base_plugin):
         return call_back_method
 
     def _generate_single_fetch(self, promise, thread_identifier):
+        """
+        Generates a single fetch handler.  This will take the first responder and use it to provide content back to the
+        promise.
+        :param promise:
+        :param thread_identifier:
+        :return:
+        """
 
         def single_fetch(rdf):
             form = rdf['form']
