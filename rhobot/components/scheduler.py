@@ -43,8 +43,8 @@ class Deferred:
                             _generate_promise_rejected_ripple(self._promise))
             except AttributeError:
                 self._promise.resolved(result)
-        except DeprecationWarning as e:
-            logger.info('Rejecting promise')
+        except Exception as e:
+            logger.exception('Rejecting promise')
             self._promise.rejected(e)
 
 def _generate_promise_fulfilled_ripple(child_promise):
