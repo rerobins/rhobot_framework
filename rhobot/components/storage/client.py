@@ -108,6 +108,24 @@ class StorageClient(base_plugin):
 
         return ResultCollectionPayload(result['command']['form'])
 
+    def get_node(self, payload, **params):
+        """
+        Retrieve all of the details about a node from the storage provider.
+        :param payload: payload containing an about for the object.
+        :param params: additional properties to store in the payload.
+        :return: a storage payload with all of the properties.
+        """
+
+        storage = payload.populate_payload()
+        _build_property_fields(storage, params)
+
+        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.GET_NODE.value,
+                                                    payload=storage, flow=False)
+
+        logger.info('result: %s' % result)
+
+        return StoragePayload(result['command']['form'])
+
 
 rho_bot_storage_client = StorageClient
 
