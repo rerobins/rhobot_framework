@@ -14,6 +14,7 @@ class StoragePayload:
         self._types = []
         self._properties = {}
         self._references = {}
+        self._flags = {}
         self._unpack_payload()
 
     def add_type(self, *args):
@@ -59,6 +60,14 @@ class StoragePayload:
         for val in value:
             current_values.append(str(val))
 
+    def add_flag(self, enumeration, value=None):
+
+        true_value = value
+        if not value:
+            true_value = enumeration.value['value']
+
+        self._flags[enumeration] = true_value
+
     def populate_payload(self):
         """
         Translates the contents of this object into a payload for sending across to the storage entity.
@@ -66,8 +75,9 @@ class StoragePayload:
         """
         self._container.clear()
 
+        # TODO: This should not be an array that is stored in the about
         if self.about:
-            self._container.add_field(var=str(RDF.about), value=[self.about], ftype=str(RDFS.Literal))
+            self._container.add_field(var=str(RDF.about), value=[str(self.about)], ftype=str(RDFS.Literal))
 
         if len(self._types):
             self._container.add_field(var=str(RDF.type), value=self._types, ftype=str(RDF.type))
@@ -77,6 +87,9 @@ class StoragePayload:
 
         for key, value in self._references.iteritems():
             self._container.add_field(var=str(key), value=value, ftype=str(RDFS.Resource))
+
+        for key, value in self._flags.iteritems():
+            self._container.add_field(var=key.value['var'], value=value, ftype=key.value['type'])
 
         return self._container
 
@@ -98,6 +111,8 @@ class StoragePayload:
                 self._properties[key] = value.get_value()
             elif value['type'] == str(RDFS.Resource):
                 self._references[key] = value.get_value()
+            else:
+                self._flags[key] = value['value']
 
     def types(self):
         return self._types
@@ -107,3 +122,6 @@ class StoragePayload:
 
     def references(self):
         return self._references
+
+    def flags(self):
+        return self._flags
