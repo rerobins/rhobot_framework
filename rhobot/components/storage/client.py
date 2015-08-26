@@ -7,6 +7,7 @@ from sleekxmpp.plugins.base import base_plugin
 from rhobot.components.storage.enums import Commands
 from rhobot.components.storage.events import STORAGE_FOUND, STORAGE_LOST
 from rhobot.components.storage.payload import StoragePayload, ResultCollectionPayload
+from rhobot.components.storage.namespace import NEO4J
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +126,23 @@ class StorageClient(base_plugin):
         logger.info('result: %s' % result)
 
         return StoragePayload(result['command']['form'])
+
+    def execute_cypher(self, query):
+        """
+        Execute a cypher query and return the results to the requester.
+        :param query: query string.
+        :return: ResultCollectionPayload
+        """
+        storage = self.create_payload()
+
+        storage.add_property(key=NEO4J.cypher, value=query)
+
+        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CYPHER.value,
+                                                    payload=storage.populate_payload(), flow=False)
+
+        logger.info('result: %s' % result)
+
+        return ResultCollectionPayload(result['command']['form'])
 
 
 rho_bot_storage_client = StorageClient

@@ -10,6 +10,7 @@ class Commands(Enum):
     DELETE_NODE = 'delete_node'
     FIND_NODE = 'find_node'
     GET_NODE = 'get_node'
+    CYPHER = 'cypher'
 
 
 @unique
