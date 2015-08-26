@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def _generate_cancel_method(scheduler_name, scheduler):
     """
     Handler that will be used to interact with the tasks that are going to be executed or not.
@@ -21,9 +22,20 @@ def _generate_cancel_method(scheduler_name, scheduler):
 
     return cancel
 
+
 class Deferred:
+    """
+    A deferred is a method wrapper that will execute a method later and provides a promise that the results will be
+    delivered to.
+    """
 
     def __init__(self, method_call, scheduler, promise=None):
+        """
+        Constructor.
+        :param method_call: the method to call.
+        :param scheduler: the scheduler that will be used to generate promises if necessary
+        :param promise: a specified promise that will be used to notify requesters.
+        """
         self._method_call = method_call
         if promise:
             self._promise = promise
@@ -31,10 +43,14 @@ class Deferred:
             self._promise = Promise(scheduler)
 
     def promise(self):
+        """
+        Retrieve the promise that will be used to notify of the results.
+        :return promise
+        """
         return self._promise
 
     def __call__(self, *args, **kwargs):
-        logger.info('Executing call method')
+        logger.debug('Executing call method')
 
         try:
             result = self._method_call()
@@ -44,18 +60,31 @@ class Deferred:
             except AttributeError:
                 self._promise.resolved(result)
         except Exception as e:
-            logger.exception('Rejecting promise')
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.exception('Rejecting promise')
             self._promise.rejected(e)
 
-def _generate_promise_fulfilled_ripple(child_promise):
 
+def _generate_promise_fulfilled_ripple(child_promise):
+    """
+    Generates a method that will resolve the child promise with the result value.  This is used when a promise returns
+    a promise.
+    :param child_promise: promise to notify.
+    :return: generated method.
+    """
     def fulfilled(result):
         child_promise.resolved(result)
 
     return fulfilled
 
-def _generate_promise_rejected_ripple(child_promise):
 
+def _generate_promise_rejected_ripple(child_promise):
+    """
+    Generates a method that will reject the child promise with the rejected value.  This is used when a promise returns
+    a promise.
+    :param child_promise: promise to reject.
+    :return: generated method.
+    """
     def rejected(error):
         child_promise.rejected(error)
 
@@ -63,9 +92,15 @@ def _generate_promise_rejected_ripple(child_promise):
 
 
 class Promise:
+    """
+    Promise Object.  A promise is a means of getting the results of a method that will be executed at some time.
+    """
 
     def __init__(self, scheduler):
-
+        """
+        Constructor.
+        :param scheduler: the scheduler that will be used to schedule the notification of the results.
+        """
         self._queue = []
 
         self._result = None
@@ -153,15 +188,25 @@ class Scheduler(base_plugin):
         return _generate_cancel_method(task_name, self.xmpp.scheduler)
 
     def defer(self, method, *args, **kwargs):
+        """
+        Defer the method execution till a later time, but return a promise that will be used to notify listeners of the
+        results.
+        :param method:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         deferred = Deferred(method, self)
 
-        logger.info('Scheduling task')
         self.schedule_task(deferred, delay=0.0)
 
-        logger.info('Returning promise')
         return deferred.promise()
 
     def promise(self):
+        """
+        Generate a promise for this scheduler without providing a deferred.
+        :return:
+        """
         return Promise(self)
 
 
