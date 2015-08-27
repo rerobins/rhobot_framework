@@ -2,10 +2,14 @@
 Payload for passing around results of commands.  In most cases this is a list of the nodes that were interacted with.
 """
 from sleekxmpp.plugins.xep_0004 import Form
-from rdflib.namespace import RDF, RDFS
+from rdflib.namespace import RDF
 import logging
+import json
 
 logger = logging.getLogger(__name__)
+
+FLAG_KEY = 'flags'
+
 
 class ResultPayload:
     """
@@ -13,7 +17,7 @@ class ResultPayload:
     the node, and the types associated with that node.
     """
 
-    def __init__(self, about=None, types=None):
+    def __init__(self, about=None, types=None, flags=None):
         """
         Constructor.
         :param about: about value
@@ -27,6 +31,14 @@ class ResultPayload:
             self.add_type(*types)
         self.about = about
 
+        if flags:
+            if isinstance(flags, dict):
+                self._flags = flags
+            elif isinstance(flags, basestring):
+                self._flags = json.loads(flags)
+        else:
+            self._flags = dict()
+
     def add_type(self, *args):
         """
         Add a list of types to the container.
@@ -36,6 +48,15 @@ class ResultPayload:
         for arg in args:
             self._types.append(str(arg))
 
+    def add_flag(self, key, value):
+        """
+        Add a flag key and value.
+        :param key: key
+        :param value: value.
+        :return:
+        """
+        self._flags[str(key)] = value
+
     @property
     def types(self):
         """
@@ -43,6 +64,13 @@ class ResultPayload:
         :return: list of types.
         """
         return self._types
+
+    @property
+    def flags(self):
+        """
+        Retrieve the flags associated with this result payload.
+        """
+        return self._flags
 
 
 class ResultCollectionPayload:
@@ -79,7 +107,9 @@ class ResultCollectionPayload:
 
         for item in self._container.get_items():
             logger.debug('item: %s' % item)
-            result_payload = ResultPayload(about=item[str(RDF.about)], types=item[str(RDF.type)])
+            result_payload = ResultPayload(about=item.get(str(RDF.about), None),
+                                           types=item.get(str(RDF.type), None),
+                                           flags=item.get(FLAG_KEY, None))
             self.append(result_payload)
 
     def populate_payload(self):
@@ -91,11 +121,13 @@ class ResultCollectionPayload:
 
         self._container.add_reported(var=str(RDF.about), ftype=str(RDF.about))
         self._container.add_reported(var=str(RDF.type), ftype=str(RDF.type))
+        self._container.add_reported(var=FLAG_KEY, ftype='text-multi')
 
         for result in self._results:
             parameters = {
                 str(RDF.about): str(result.about),
-                str(RDF.type): result.types
+                str(RDF.type): result.types,
+                FLAG_KEY: json.dumps(result.flags),
             }
             self._container.add_item(parameters)
 

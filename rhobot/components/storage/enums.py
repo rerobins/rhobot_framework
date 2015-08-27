@@ -26,3 +26,8 @@ class UpdateFlags(Enum):
 class FindFlags(Enum):
     # Should the node be created if it isn't found.  This should be a boolean.
     CREATE_IF_MISSING = dict(var='create_if_missing', type='boolean', default=False)
+
+@unique
+class FindResults(Enum):
+    # Was the node created when it was found. This should return a boolean.
+    CREATED = 'created'

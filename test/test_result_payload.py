@@ -53,3 +53,29 @@ class TestResultPayload(unittest.TestCase):
 
         self.assertEqual(init_result.about, urn)
         self.assertEqual(init_result.types, types)
+
+    def test_flags(self):
+
+        types = [str(FOAF.Person), str(RHO.Owner)]
+        urn = 'urn.instance.owner'
+        flags = dict(created=False)
+
+        payload = ResultCollectionPayload()
+        payload.append(ResultPayload(about=urn, types=types, flags=flags))
+
+        result = payload.populate_payload()
+
+        second_payload = ResultCollectionPayload(result)
+
+        self.assertEqual(len(second_payload.results), len(payload.results))
+
+        init_result = payload.results[0]
+        second_result = second_payload.results[0]
+
+        self.assertEqual(init_result.about, second_result.about)
+        self.assertEqual(init_result.types, second_result.types)
+        self.assertDictEqual(init_result.flags, second_result.flags)
+
+        self.assertEqual(init_result.about, urn)
+        self.assertEqual(init_result.types, types)
+        self.assertDictEqual(init_result.flags, flags)
