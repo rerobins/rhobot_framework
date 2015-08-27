@@ -24,7 +24,7 @@ class StorageClient(base_plugin):
     """
 
     name = 'rho_bot_storage_client'
-    dependencies = {'rho_bot_roster', 'xep_0050'}
+    dependencies = {'xep_0050', }
     description = 'Storage Client Plugin'
 
     def plugin_init(self):
@@ -39,7 +39,7 @@ class StorageClient(base_plugin):
         Create a payload object for sending to the storage container.
         :return:
         """
-        return StoragePayload(self.xmpp['xep_0004'].make_form(ftype='result'))
+        return StoragePayload()
 
     def _store_found(self, data):
         """
@@ -49,7 +49,7 @@ class StorageClient(base_plugin):
         :param data:
         :return:
         """
-        logger.info('Found a store: %s' % data)
+        logger.debug('Found a store: %s' % data)
         self.xmpp.event(STORAGE_FOUND)
         self._storage_jid = data
 
@@ -71,13 +71,14 @@ class StorageClient(base_plugin):
         """
         return self._storage_jid is not None
 
-    def create_node(self, payload):
+    def create_node(self, payload, **params):
         """
         Create a new node with the provided payload
         :param payload: payload to store in the data store.
-        :return:
+        :return: ResultCollectionPayload
         """
         storage = payload.populate_payload()
+        _build_property_fields(storage, params)
 
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CREATE_NODE.value,
                                                     payload=storage, flow=False)
@@ -85,6 +86,12 @@ class StorageClient(base_plugin):
         return ResultCollectionPayload(result['command']['form'])
 
     def find_nodes(self, payload, **params):
+        """
+        Basic search for a node.
+        :param payload: StoragePayload containing a description of a node that is being searched for.
+        :param params: command parameters.
+        :return: ResultCollectionPayload
+        """
         storage = payload.populate_payload()
 
         _build_property_fields(storage, params)
@@ -97,6 +104,14 @@ class StorageClient(base_plugin):
         return ResultCollectionPayload(result['command']['form'])
 
     def update_node(self, payload, **params):
+        """
+        Update the node described in the payload about, with the values provided.
+        :param payload: payload that describes the node and the updated field values
+        :param params: additional flags associated with that command.
+        :return: ResultCollectionPayload.
+        """
+        if not payload.about:
+            raise AttributeError('Missing about field in the storage payload')
 
         storage = payload.populate_payload()
 
@@ -116,6 +131,8 @@ class StorageClient(base_plugin):
         :param params: additional properties to store in the payload.
         :return: a storage payload with all of the properties.
         """
+        if not payload.about:
+            raise AttributeError('Missing about field in the storage payload')
 
         storage = payload.populate_payload()
         _build_property_fields(storage, params)

@@ -258,7 +258,7 @@ class RDFPublish(base_plugin):
             form = rdf['form']
             results_collection = ResultCollectionPayload(form)
             data = []
-            for record in results_collection.results():
+            for record in results_collection.results:
                 data.append(record.about)
 
             promise.resolved(data)

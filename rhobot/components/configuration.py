@@ -4,6 +4,7 @@ Component that will handle the storing of details in xmpp for configuration.
 import logging
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.xmlstream import ElementBase, register_stanza_plugin
+from sleekxmpp.plugins.xep_0060.stanza import Item
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class BotConfiguration(base_plugin):
         :return:
         """
         self._configuration = dict()
-        register_stanza_plugin(self.xmpp['xep_0060'].stanza.Item, ConfigurationStanza)
+        register_stanza_plugin(Item, ConfigurationStanza)
         self.xmpp.add_event_handler("session_start", self._start)
 
     def _start(self, event):

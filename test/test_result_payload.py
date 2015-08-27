@@ -26,6 +26,11 @@ class TestResultPayload(unittest.TestCase):
 
         self.assertEqual(len(form.get_items()), len(result_collection_payload._results))
 
+        item = result_collection_payload.results[0]
+
+        self.assertEqual(item.about, urn)
+        self.assertEqual(item.types, types)
+
     def test_populating(self):
 
         types = [str(FOAF.Person), str(RHO.Owner)]
@@ -38,16 +43,13 @@ class TestResultPayload(unittest.TestCase):
 
         second_payload = ResultCollectionPayload(result)
 
-        self.assertEqual(len(second_payload.results()), len(payload.results()))
+        self.assertEqual(len(second_payload.results), len(payload.results))
 
-        init_result = payload.results()[0]
-        second_result = second_payload.results()[0]
+        init_result = payload.results[0]
+        second_result = second_payload.results[0]
 
         self.assertEqual(init_result.about, second_result.about)
-        self.assertEqual(init_result.types(), second_result.types())
+        self.assertEqual(init_result.types, second_result.types)
 
         self.assertEqual(init_result.about, urn)
-        self.assertEqual(init_result.types(), types)
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertEqual(init_result.types, types)

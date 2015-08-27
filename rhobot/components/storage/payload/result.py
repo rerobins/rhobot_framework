@@ -36,6 +36,7 @@ class ResultPayload:
         for arg in args:
             self._types.append(str(arg))
 
+    @property
     def types(self):
         """
         Retrieve the types associated with this result payload.
@@ -77,7 +78,7 @@ class ResultCollectionPayload:
         self._results = []
 
         for item in self._container.get_items():
-            logger.info('item: %s' % item)
+            logger.debug('item: %s' % item)
             result_payload = ResultPayload(about=item[str(RDF.about)], types=item[str(RDF.type)])
             self.append(result_payload)
 
@@ -88,18 +89,19 @@ class ResultCollectionPayload:
         """
         self._container.clear()
 
-        self._container.add_reported(var=str(RDF.about), ftype=str(RDFS.Literal))
+        self._container.add_reported(var=str(RDF.about), ftype=str(RDF.about))
         self._container.add_reported(var=str(RDF.type), ftype=str(RDF.type))
 
         for result in self._results:
             parameters = {
                 str(RDF.about): str(result.about),
-                str(RDF.type): result.types()
+                str(RDF.type): result.types
             }
             self._container.add_item(parameters)
 
         return self._container
 
+    @property
     def results(self):
         """
         Retrieve the results.

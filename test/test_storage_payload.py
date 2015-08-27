@@ -29,7 +29,7 @@ class TestStoragePayload(unittest.TestCase):
 
         content = payload.populate_payload()
 
-        self.assertEqual(content.get_fields()[str(RDF.about)]['value'], [about])
+        self.assertEqual(content.get_fields()[str(RDF.about)]['value'], about)
         self.assertEqual(content.get_fields()[str(RDFS.seeAlso)]['value'], [see_also])
         self.assertEqual(content.get_fields()[str(FOAF.mbox)]['value'], [mbox])
         self.assertEqual(content.get_fields()[FindFlags.CREATE_IF_MISSING.value['var']]['value'], create_if_missing)
@@ -57,6 +57,7 @@ class TestStoragePayload(unittest.TestCase):
         second_payload = StoragePayload(content)
 
         self.assertEqual(second_payload.about, about)
-        self.assertEqual(second_payload.properties()[str(RDFS.seeAlso)], [see_also])
-        self.assertEqual(second_payload.references()[str(FOAF.mbox)], [mbox])
-        self.assertEqual(second_payload.flags()[FindFlags.CREATE_IF_MISSING.value['var']], create_if_missing)
+        self.assertIn(str(FOAF.Person), second_payload.types)
+        self.assertEqual(second_payload.properties[str(RDFS.seeAlso)], [see_also])
+        self.assertEqual(second_payload.references[str(FOAF.mbox)], [mbox])
+        self.assertEqual(second_payload.flags[FindFlags.CREATE_IF_MISSING.value['var']], create_if_missing)
