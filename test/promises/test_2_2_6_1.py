@@ -1,5 +1,6 @@
 """
 2.2.6: `then` may be called multiple times on the same promise.
+https://github.com/promises-aplus/promises-tests/blob/2.1.1/lib/tests/2.2.6.js
 """
 import mock
 from test.promises.helpers import generate_fulfilled_test_case

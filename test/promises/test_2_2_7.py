@@ -1,5 +1,6 @@
 """
 2.2.7: `then` must return a promise: `promise2 = promise1.then(onFulfilled, onRejected)`
+https://github.com/promises-aplus/promises-tests/blob/2.1.1/lib/tests/2.2.7.js
 """
 
 from sleekxmpp.test import SleekTest

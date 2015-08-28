@@ -1,6 +1,7 @@
-from sleekxmpp.test import SleekTest
-import unittest
-import threading
+"""
+2.3.4: If `x` is not an object or function, fulfill `promise` with `x`
+https://github.com/promises-aplus/promises-tests/blob/2.1.1/lib/tests/2.3.4.js
+"""
 from test.promises.helpers import generate_fulfilled_test_case, generate_rejected_test_case
 
 dummy = {'dummy': 'dummy'}

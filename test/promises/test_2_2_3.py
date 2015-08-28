@@ -1,5 +1,5 @@
 """
- If `onRejected` is a function,
+2.2.3: If `onRejected` is a function,
  https://github.com/promises-aplus/promises-tests/blob/2.1.1/lib/tests/2.2.3.js
 """
 from sleekxmpp.test import SleekTest
