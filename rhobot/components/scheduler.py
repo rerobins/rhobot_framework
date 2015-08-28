@@ -54,6 +54,11 @@ class Deferred:
 
         try:
             result = self._method_call()
+
+            # 2.3.1
+            if result == self._promise:
+                raise TypeError
+
             try:
                 result.then(_generate_promise_fulfilled_ripple(self._promise),
                             _generate_promise_rejected_ripple(self._promise))
@@ -103,6 +108,9 @@ class Promise:
         """
         self._queue = []
 
+        self._resolved = False
+        self._rejected = False
+
         self._result = None
         self._error = None
         self._scheduler = scheduler
@@ -113,46 +121,63 @@ class Promise:
         new_promise = Promise(self._scheduler)
 
         # If the promise hasn't been resolved, add it to the queue, otherwise fire off the new deferred.
-        if not(self._result or self._error):
-            self._queue.append((fulfilled, rejected, new_promise))
-        elif self._result:
+
+        if self._resolved:
             if fulfilled:
-                deferred = Deferred(lambda: fulfilled(self._result), self._scheduler, new_promise)
-                self._scheduler.schedule_task(deferred, delay=0.0)
-        elif self._error:
+                deferred = Deferred(self._generate_wrapper(fulfilled, self._result), self._scheduler, new_promise)
+            else:
+                deferred = Deferred(lambda: self._result, self._scheduler, new_promise)
+            self._scheduler.schedule_task(deferred, delay=0.0)
+        elif self._rejected:
             if rejected:
-                self._scheduler.schedule_task(lambda: rejected(self._error), delay=0.0)
-            self._scheduler.schedule_task(lambda: new_promise.rejected(self._error), delay=0.0)
+                deferred = Deferred(self._generate_wrapper(rejected, self._error), self._scheduler, new_promise)
+                self._scheduler.schedule_task(deferred, delay=0.0)
+            else:
+                self._scheduler.schedule_task(lambda: new_promise.rejected(self._error), delay=0.0)
+        else:
+            self._queue.append((fulfilled, rejected, new_promise))
 
         return new_promise
 
     def resolved(self, result):
-        if not (self._result or self._error):
+
+        if not(self._resolved or self._rejected):
+            self._resolved = True
             self._result = result
 
             # schedule the fulfilled method call.
-
             for fulfilled, rejected, promise in self._queue:
                 if fulfilled:
-                    deferred = Deferred(lambda: fulfilled(self._result), self._scheduler, promise)
-                    self._scheduler.schedule_task(deferred, delay=0.0)
+                    deferred = Deferred(self._generate_wrapper(fulfilled, self._result), self._scheduler, promise)
                 else:
-                    self._scheduler.schedule_task(lambda: promise.resolved(self._result), delay=0.0)
-        else:
-            pass
+                    deferred = Deferred(lambda: self._result, self._scheduler, promise)
+
+                self._scheduler.schedule_task(deferred, delay=0.0)
 
         self._queue = None
 
+    def _generate_wrapper(self, function, arg):
+        """
+        Generate a wrapper.
+        :param function: function to call
+        :param arg: arg to use
+        """
+        def method():
+            return function(arg)
+        return method
+
     def rejected(self, error):
-        if not (self._result or self._error):
+
+        if not (self._resolved or self._rejected):
+            self._rejected = True
             self._error = error
             # schedule the rejected method call
             for fulfilled, rejected, promise in self._queue:
                 if rejected:
-                    self._scheduler.schedule_task(lambda: rejected(self._error), delay=0.0)
-                self._scheduler.schedule_task(lambda: promise.rejected(self._error), delay=0.0)
-        else:
-            pass
+                    deferred = Deferred(self._generate_wrapper(rejected, self._error), self._scheduler, promise)
+                    self._scheduler.schedule_task(deferred, delay=0.0)
+                else:
+                    self._scheduler.schedule_task(lambda: promise.rejected(self._error), delay=0.0)
 
         self._queue = None
 
