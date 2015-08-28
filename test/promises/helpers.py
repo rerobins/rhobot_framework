@@ -1,7 +1,7 @@
 from sleekxmpp.test import SleekTest
 import threading
 
-def generate_fulfilled_test_case(method, value):
+def generate_fulfilled_test_case(method, value, module=None, name=None):
 
     class TestFulfilled(SleekTest):
 
@@ -70,10 +70,15 @@ def generate_fulfilled_test_case(method, value):
 
             self.assertTrue(event.wait(10.0))
 
+    if name:
+        TestFulfilled.__name__ = name
+    if module:
+        TestFulfilled.__module__ = module
+
     return TestFulfilled
 
 
-def generate_rejected_test_case(method, value):
+def generate_rejected_test_case(method, value, module=None, name=None):
 
     class TestRejected(SleekTest):
 
@@ -141,6 +146,12 @@ def generate_rejected_test_case(method, value):
             self.scheduler.schedule_task(lambda: promise.rejected(value), delay=0.050)
 
             self.assertTrue(event.wait(10.0))
+
+    if name:
+        TestRejected.__name__ = name
+
+    if module:
+        TestRejected.__module__ = module
 
     return TestRejected
 

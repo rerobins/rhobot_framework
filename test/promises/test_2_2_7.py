@@ -85,10 +85,18 @@ def on_rejected_not_a_function_pass_through(test_case, promise, done):
     promise2.then(None, promise2_handler)
 
 FulfilledThrowsExceptionPromise = generate_fulfilled_test_case(method=on_fulfilled_throws_exception_promise_is_rejected,
-                                                               value=dict())
+                                                               value=dict(),
+                                                               module=__name__,
+                                                               name='FulfilledThrowsExceptionPromise')
 RejectedThrowsExceptionPromise = generate_rejected_test_case(method=on_rejected_throws_exception_promise_is_rejected,
-                                                             value=dict())
+                                                             value=dict(),
+                                                             module=__name__,
+                                                             name='RejectedThrowsExceptionPromise')
 FulfilledPassThrough = generate_fulfilled_test_case(method=on_fulfilled_not_a_function_pass_through,
-                                                    value=sentinel)
+                                                    value=sentinel,
+                                                    module=__name__,
+                                                    name='FulfilledPassThrough')
 RejectedPassTrough = generate_rejected_test_case(method=on_rejected_not_a_function_pass_through,
-                                                 value=sentinel)
+                                                 value=sentinel,
+                                                 module=__name__,
+                                                 name='RejectedPassTrough')

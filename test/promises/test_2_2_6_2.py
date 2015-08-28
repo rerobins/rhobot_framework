@@ -141,11 +141,21 @@ def order_manipulated_in_a_promise(test_case, promise, done):
     promise.then(None, schedule_test)
 
 
-MultipleBoringTestCases = generate_rejected_test_case(method=multiple_boring_tests, value=sentinel)
-MultipleOneThrowsTestCases = generate_rejected_test_case(method=multiple_one_throws, value=sentinel)
+MultipleBoringTestCases = generate_rejected_test_case(method=multiple_boring_tests, value=sentinel,
+                                                      module=__name__,
+                                                      name='MultipleBoringTestCases')
+MultipleOneThrowsTestCases = generate_rejected_test_case(method=multiple_one_throws, value=sentinel,
+                                                         module=__name__,
+                                                         name='MultipleOneThrowsTestCases')
 MultipleBranchingTestCases = generate_rejected_test_case(method=multiple_branching_chains_each_with_own_value,
-                                                         value=dummy)
+                                                         module=__name__,
+                                                         value=dummy,
+                                                         name='MultipleBranchingTestCases')
 FulfilledHandlersInOrder = generate_rejected_test_case(method=on_fulfilled_handlers_called_in_original_order,
-                                                       value=dummy)
+                                                       value=dummy,
+                                                       module=__name__,
+                                                       name='FulfilledHandlersInOrder')
 OrderManipulatedInPromise = generate_rejected_test_case(method=order_manipulated_in_a_promise,
-                                                        value=dummy)
+                                                        value=dummy,
+                                                        module=__name__,
+                                                        name='OrderManipulatedInPromise')
