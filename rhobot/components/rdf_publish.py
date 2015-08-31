@@ -23,6 +23,7 @@ from rhobot.components.storage import ResultCollectionPayload
 import logging
 import uuid
 from enum import Enum
+from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
 
 logger = logging.getLogger(__name__)
 
@@ -32,25 +33,35 @@ class RDFStanzaType(Enum):
     RESPONSE = 'response'
     CREATE = 'create'
     UPDATE = 'update'
+    SEARCH_REQUEST = 'search'
+    SEARCH_RESPONSE = 'search_response'
 
 
 class RDFStanza(ElementBase):
     """
     Stanza responsible for requesting and responding to rdf requests.
     <rdf xmlns='rho:rdf' type='request|response'>
-        <x xmlns='data'
+        <x xmlns='data'... />
+        <source>
+            <name>Some Name</name>
+            <command>xmpp:jid@jiddomain.com?command;node=some_node;action=execute</command>
+        </source>
     </rdf>
+
+    source provides a command that can be used to search for other valid details.
     """
     name = 'rdf'
     namespace = 'rho:rdf'
     plugin_attrib = 'rdf'
-    interfaces = {'type', }
+    interfaces = {'type', 'source', }
+    sub_interfaces = {'source', }
 
+# TODO: Add the source stanza information
 
 class RDFPublish(base_plugin):
 
     name = 'rho_bot_rdf_publish'
-    dependencies = {'rho_bot_storage_client', 'rho_bot_roster', 'rho_bot_scheduler', }
+    dependencies = {'rho_bot_roster', 'rho_bot_scheduler', }
     description = 'Configuration Plugin'
 
     def plugin_init(self):
@@ -67,6 +78,7 @@ class RDFPublish(base_plugin):
         self._request_handlers = []
         self._create_handlers = []
         self._update_handlers = []
+        self._search_handlers = []
 
     def _channel_joined(self, event):
         """
@@ -78,7 +90,7 @@ class RDFPublish(base_plugin):
         logger.info('Joined the registration channel')
         self.xmpp['rho_bot_roster'].add_message_received_listener(self._receive_message)
 
-    def send_out_request(self, payload, timeout=10.0):
+    def send_out_request(self, payload, timeout=10.0, allow_multiple=False):
         """
         Send out an rdf request for the provided payload.
         :param payload: the payload to serialize and then
@@ -89,9 +101,37 @@ class RDFPublish(base_plugin):
 
         promise = Promise(self.xmpp['rho_bot_scheduler'])
 
-        self._pending_requests[thread_identifier] = self._generate_single_fetch(promise, thread_identifier)
+        if allow_multiple:
+            callback = self._generate_gather_all_data(promise, thread_identifier)
+        else:
+            callback = self._generate_single_fetch(promise, thread_identifier)
+
+        self._pending_requests[thread_identifier] = dict(callback=callback,
+                                                         results=ResultCollectionPayload())
 
         self._send_message(mtype=RDFStanzaType.REQUEST, payload=payload, thread_id=thread_identifier)
+
+        self.xmpp['rho_bot_scheduler'].schedule_task(callback=self._generate_cancel_event(promise, thread_identifier),
+                                                     delay=timeout)
+
+        return promise
+
+    def send_out_search(self, payload, timeout=10.0):
+        """
+        Send out a search request to all of the users that are currently in the channel.
+        :param payload: payload to serialize and then send out.
+        :param timeout: length of time in seconds before canceling the request.
+        :return: promise containing all of the results.
+        """
+        thread_identifier = str(uuid.uuid4())
+
+        promise = Promise(self.xmpp['rho_bot_scheduler'])
+
+        self._pending_requests[thread_identifier] = dict(callback=self._generate_gather_all_data(promise,
+                                                                                                 thread_identifier),
+                                                         results=ResultCollectionPayload())
+
+        self._send_message(mtype=RDFStanzaType.SEARCH_REQUEST, payload=payload, thread_id=thread_identifier)
 
         self.xmpp['rho_bot_scheduler'].schedule_task(callback=self._generate_cancel_event(promise, thread_identifier),
                                                      delay=timeout)
@@ -138,6 +178,14 @@ class RDFPublish(base_plugin):
         """
         self._update_handlers.append(callback)
 
+    def add_search_handler(self, callback):
+        """
+        Add a message handler for all of the search notifications.
+        :param callback:
+        :return:
+        """
+        self._search_handlers.append(callback)
+
     def _send_message(self, mtype='ignore', payload=None, thread_id=None):
         """
         Create and RDF message and populate it with the payload for transmission.
@@ -181,6 +229,10 @@ class RDFPublish(base_plugin):
                 self._create(message, rdf_payload)
             elif message_type == RDFStanzaType.UPDATE:
                 self._update(message, rdf_payload)
+            elif message_type == RDFStanzaType.SEARCH_REQUEST:
+                self._search_request(message, rdf_payload)
+            elif message_type == RDFStanzaType.SEARCH_RESPONSE:
+                self._search_response(message, rdf_payload)
         except ValueError:
             logger.error('Unknown message type: %s' % message_type)
 
@@ -194,7 +246,6 @@ class RDFPublish(base_plugin):
         for handler in self._request_handlers:
             response = handler(rdf_payload)
             if response:
-                logger.info('response')
                 self._send_message(mtype=RDFStanzaType.RESPONSE, payload=response,
                                    thread_id=message.get('thread', None))
 
@@ -207,8 +258,10 @@ class RDFPublish(base_plugin):
         """
         thread_identifier = message.get('thread', None)
         if thread_identifier:
-            callback = self._pending_requests.get(thread_identifier, None)
-            if callback:
+            result = self._pending_requests.get(thread_identifier, None)
+
+            if result:
+                callback = self._pending_requests.get(thread_identifier, None)['callback']
                 callback(rdf_payload)
 
     def _create(self, message, rdf_payload):
@@ -231,6 +284,34 @@ class RDFPublish(base_plugin):
         for handler in self._update_handlers:
             handler(rdf_payload)
 
+    def _search_request(self, message, rdf_payload):
+        """
+        Handle search request message.
+        :param message:
+        :param rdf_payload:
+        :return:
+        """
+        for handler in self._search_handlers:
+            response = handler(rdf_payload)
+            if response:
+                self._send_message(mtype=RDFStanzaType.RESPONSE, payload=response,
+                                   thread_id=message.get('thread', None))
+
+    def _search_response(self, message, rdf_payload):
+        """
+        Handle the response messages.
+        :param message:
+        :param rdf_payload:
+        :return:
+        """
+        thread_identifier = message.get('thread', None)
+        if thread_identifier:
+            result = self._pending_requests.get(thread_identifier, None)
+
+            if result:
+                callback = self._pending_requests.get(thread_identifier, None)['callback']
+                callback(rdf_payload)
+
     def _generate_cancel_event(self, promise, request_identifier):
         """
         Generate a callback that will cancel the handler and notify the callback that the handler has timed out.
@@ -238,10 +319,11 @@ class RDFPublish(base_plugin):
         :return:
         """
         def call_back_method():
-            if request_identifier in self._pending_requests:
-                del self._pending_requests[request_identifier]
+            result_container = self._pending_requests.get(request_identifier, None)
 
-                promise.resolved([])
+            if result_container:
+                del self._pending_requests[request_identifier]
+                promise.resolved(result_container['results'])
 
         return call_back_method
 
@@ -253,18 +335,42 @@ class RDFPublish(base_plugin):
         :param thread_identifier:
         :return:
         """
-
         def single_fetch(rdf):
             form = rdf['form']
             results_collection = ResultCollectionPayload(form)
-            data = []
-            for record in results_collection.results:
-                data.append(record.about)
 
-            promise.resolved(data)
+            promise.resolved(results_collection)
             del self._pending_requests[thread_identifier]
 
         return single_fetch
+
+    def _generate_gather_all_data(self, promise, thread_identifier):
+        """
+        Generates a handler that will gather all of the data that has been requested by the components in the channel.
+        :param promise: promise that will be eventually resolved with data.
+        :param thread_identifier: thread_identifier that will be used to store the contents.
+        :return: generated method that can be called when data is received.
+        """
+        def multiple_fetch(rdf):
+
+            result_container = self._pending_requests.get(thread_identifier, None)
+            if result_container:
+                form = rdf['form']
+                results_collection = ResultCollectionPayload(form)
+                results = result_container['results']
+                results.append(*results_collection.results)
+
+                # Store off the sources if necessary
+                if rdf['source']:
+                    if hasattr(results, 'source'):
+                        sources = results.sources
+                    else:
+                        sources = set()
+
+                    sources.add(rdf['source'])
+                    results.source = sources
+
+        return multiple_fetch
 
 
 rho_bot_rdf_publish = RDFPublish

@@ -12,7 +12,7 @@ from rdflib.namespace import FOAF, RDF, RDFS
 from rhobot.namespace import RHO
 
 
-class SingleRequestTestCase(unittest.TestCase):
+class MultipleRequestTestCase(unittest.TestCase):
 
     def setUp(self):
         self.scheduler_plugin = mock.MagicMock()
@@ -39,7 +39,7 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        request_promise = self.rdf_publisher.send_out_request(payload)
+        request_promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
         self.assertIsNotNone(request_promise)
         self.assertTrue(hasattr(request_promise, 'then'))
 
@@ -64,7 +64,7 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        promise = self.rdf_publisher.send_out_request(payload)
+        promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
 
         args, kwargs = self.scheduler_plugin.schedule_task.call_args
         callback = kwargs['callback']
@@ -81,11 +81,14 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        promise = self.rdf_publisher.send_out_request(payload)
+        promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
 
         args, kwargs = self.roster_plugin.send_message.call_args
         payload = kwargs['payload']
         thread_id = kwargs['thread_id']
+
+        args, kwargs = self.scheduler_plugin.schedule_task.call_args
+        callback = kwargs['callback']
 
         response_payload = ResultCollectionPayload()
         response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
@@ -100,6 +103,10 @@ class SingleRequestTestCase(unittest.TestCase):
 
         with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
             self.rdf_publisher._receive_message(response_message)
+
+            mock_promise_resolve.assert_not_called()
+
+            callback()
 
             self.assertEqual(1, mock_promise_resolve.call_count)
             args, kwargs = mock_promise_resolve.call_args
@@ -115,11 +122,14 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        promise = self.rdf_publisher.send_out_request(payload)
+        promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
 
         args, kwargs = self.roster_plugin.send_message.call_args
         payload = kwargs['payload']
         thread_id = kwargs['thread_id']
+
+        args, kwargs = self.scheduler_plugin.schedule_task.call_args
+        callback = kwargs['callback']
 
         response_payload = ResultCollectionPayload()
         response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
@@ -135,14 +145,20 @@ class SingleRequestTestCase(unittest.TestCase):
         with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
             self.rdf_publisher._receive_message(response_message)
 
-            self.assertEqual(1, mock_promise_resolve.call_count)
-            args, kwargs = mock_promise_resolve.call_args
-
-            result = [rdf.about for rdf in args[0].results]
-
-            self.assertEqual(result, [publish_urn])
+            mock_promise_resolve.assert_not_called()
 
         with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
             self.rdf_publisher._receive_message(response_message)
 
             mock_promise_resolve.assert_not_called()
+
+        with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
+
+            callback()
+
+            self.assertEqual(1, mock_promise_resolve.call_count)
+            args, kwargs = mock_promise_resolve.call_args
+
+            result = [rdf.about for rdf in args[0].results]
+
+            self.assertEqual(result, [publish_urn, publish_urn])

@@ -12,7 +12,7 @@ from rdflib.namespace import FOAF, RDF, RDFS
 from rhobot.namespace import RHO
 
 
-class SingleRequestTestCase(unittest.TestCase):
+class SearchRequestTestCase(unittest.TestCase):
 
     def setUp(self):
         self.scheduler_plugin = mock.MagicMock()
@@ -39,7 +39,7 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        request_promise = self.rdf_publisher.send_out_request(payload)
+        request_promise = self.rdf_publisher.send_out_search(payload)
         self.assertIsNotNone(request_promise)
         self.assertTrue(hasattr(request_promise, 'then'))
 
@@ -56,7 +56,7 @@ class SingleRequestTestCase(unittest.TestCase):
         self.assertIsNotNone(kwargs['payload'])
 
         payload = kwargs['payload']
-        self.assertEqual(payload['type'], RDFStanzaType.REQUEST.value)
+        self.assertEqual(payload['type'], RDFStanzaType.SEARCH_REQUEST.value)
         self.assertIn(str(FOAF.Person), payload['form'].get_fields()[str(RDF.type)].get_value())
         self.assertIn(str(RHO.Owner), payload['form'].get_fields()[str(RDF.type)].get_value())
 
@@ -64,7 +64,7 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        promise = self.rdf_publisher.send_out_request(payload)
+        promise = self.rdf_publisher.send_out_search(payload)
 
         args, kwargs = self.scheduler_plugin.schedule_task.call_args
         callback = kwargs['callback']
@@ -81,16 +81,19 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        promise = self.rdf_publisher.send_out_request(payload)
+        promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
 
         args, kwargs = self.roster_plugin.send_message.call_args
         payload = kwargs['payload']
         thread_id = kwargs['thread_id']
 
+        args, kwargs = self.scheduler_plugin.schedule_task.call_args
+        callback = kwargs['callback']
+
         response_payload = ResultCollectionPayload()
         response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
 
-        self.rdf_publisher._send_message(RDFStanzaType.RESPONSE, response_payload, thread_id)
+        self.rdf_publisher._send_message(RDFStanzaType.SEARCH_RESPONSE, response_payload, thread_id)
         response_args, response_kwargs = self.roster_plugin.send_message.call_args
 
         payload = response_kwargs['payload']
@@ -100,6 +103,10 @@ class SingleRequestTestCase(unittest.TestCase):
 
         with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
             self.rdf_publisher._receive_message(response_message)
+
+            mock_promise_resolve.assert_not_called()
+
+            callback()
 
             self.assertEqual(1, mock_promise_resolve.call_count)
             args, kwargs = mock_promise_resolve.call_args
@@ -115,11 +122,14 @@ class SingleRequestTestCase(unittest.TestCase):
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
 
-        promise = self.rdf_publisher.send_out_request(payload)
+        promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
 
         args, kwargs = self.roster_plugin.send_message.call_args
         payload = kwargs['payload']
         thread_id = kwargs['thread_id']
+
+        args, kwargs = self.scheduler_plugin.schedule_task.call_args
+        callback = kwargs['callback']
 
         response_payload = ResultCollectionPayload()
         response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
@@ -135,6 +145,60 @@ class SingleRequestTestCase(unittest.TestCase):
         with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
             self.rdf_publisher._receive_message(response_message)
 
+            mock_promise_resolve.assert_not_called()
+
+        with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
+            self.rdf_publisher._receive_message(response_message)
+
+            mock_promise_resolve.assert_not_called()
+
+        with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
+
+            callback()
+
+            self.assertEqual(1, mock_promise_resolve.call_count)
+            args, kwargs = mock_promise_resolve.call_args
+
+            result = [rdf.about for rdf in args[0].results]
+
+            self.assertEqual(result, [publish_urn, publish_urn])
+
+    def test_response_with_source_received(self):
+
+        publish_urn = 'rho:instances.owner'
+        source_urn = 'xmpp:room@conference.local/nick?command;node=some_node'
+
+        payload = StoragePayload()
+        payload.add_type(FOAF.Person, RHO.Owner)
+
+        promise = self.rdf_publisher.send_out_request(payload, allow_multiple=True)
+
+        args, kwargs = self.roster_plugin.send_message.call_args
+        payload = kwargs['payload']
+        thread_id = kwargs['thread_id']
+
+        args, kwargs = self.scheduler_plugin.schedule_task.call_args
+        callback = kwargs['callback']
+
+        response_payload = ResultCollectionPayload()
+        response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
+
+        self.rdf_publisher._send_message(RDFStanzaType.SEARCH_RESPONSE, response_payload, thread_id)
+        response_args, response_kwargs = self.roster_plugin.send_message.call_args
+
+        payload = response_kwargs['payload']
+        payload['source'] = source_urn
+        response_message = Message()
+        response_message.append(payload)
+        response_message['thread'] = response_kwargs['thread_id']
+
+        with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
+            self.rdf_publisher._receive_message(response_message)
+
+            mock_promise_resolve.assert_not_called()
+
+            callback()
+
             self.assertEqual(1, mock_promise_resolve.call_count)
             args, kwargs = mock_promise_resolve.call_args
 
@@ -142,7 +206,6 @@ class SingleRequestTestCase(unittest.TestCase):
 
             self.assertEqual(result, [publish_urn])
 
-        with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
-            self.rdf_publisher._receive_message(response_message)
+            self.assertTrue(hasattr(args[0], 'source'))
 
-            mock_promise_resolve.assert_not_called()
+            self.assertEqual(args[0].source, {source_urn})
