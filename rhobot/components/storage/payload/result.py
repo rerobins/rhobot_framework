@@ -72,7 +72,6 @@ class ResultPayload:
         """
         return self._flags
 
-
 class ResultCollectionPayload:
     """
     Collection of result payloads.
@@ -107,9 +106,19 @@ class ResultCollectionPayload:
 
         for item in self._container.get_items():
             logger.debug('item: %s' % item)
-            result_payload = ResultPayload(about=item.get(str(RDF.about), None),
-                                           types=item.get(str(RDF.type), None),
-                                           flags=item.get(FLAG_KEY, None))
+            about = None
+            types = None
+            flags = dict()
+
+            for key, value in item.iteritems():
+                if key == str(RDF.about):
+                    about = value
+                elif key == str(RDF.type):
+                    types = value
+                else:
+                    flags[key] = value
+
+            result_payload = ResultPayload(about=about, types=types, flags=flags)
             self.append(result_payload)
 
     def populate_payload(self):
@@ -121,14 +130,21 @@ class ResultCollectionPayload:
 
         self._container.add_reported(var=str(RDF.about), ftype=str(RDF.about))
         self._container.add_reported(var=str(RDF.type), ftype=str(RDF.type))
-        self._container.add_reported(var=FLAG_KEY, ftype='text-multi')
+
+        additional_flags = set()
+        for result in self._results:
+            additional_flags.update(result.flags.keys())
+
+        for flag_value in additional_flags:
+            self._container.add_reported(var=flag_value, ftype='text-single')
 
         for result in self._results:
             parameters = {
                 str(RDF.about): str(result.about),
-                str(RDF.type): result.types,
-                FLAG_KEY: json.dumps(result.flags),
+                str(RDF.type): result.types
             }
+            parameters.update(result.flags)
+
             self._container.add_item(parameters)
 
         return self._container
