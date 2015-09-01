@@ -16,7 +16,7 @@ class SearchRequestTestCase(unittest.TestCase):
 
     def setUp(self):
         self.scheduler_plugin = mock.MagicMock()
-        self.roster_plugin = mock.MagicMock()
+        self.roster_plugin = mock.MagicMock(**{'get_jid.return_value': 'rhobot@conference.local/bot'})
 
         plugins = {'rho_bot_scheduler': self.scheduler_plugin,
                    'rho_bot_roster': self.roster_plugin}
@@ -25,6 +25,7 @@ class SearchRequestTestCase(unittest.TestCase):
             return plugins.get(name, False)
 
         self.xmpp = mock.MagicMock()
+        type(self.xmpp).name = mock.PropertyMock(return_value='RhoBot Name')
         self.xmpp.__getitem__.side_effect = getitem
 
         self.rdf_publisher = rho_bot_rdf_publish(self.xmpp, None)
@@ -115,7 +116,12 @@ class SearchRequestTestCase(unittest.TestCase):
 
             self.assertEqual(result, [publish_urn])
 
-    def test_responed_only_once(self):
+            # Should not have any sources defined.
+            callback_results = args[0]
+
+            self.assertFalse(hasattr(callback_results, 'sources'))
+
+    def test_retrieve_all(self):
 
         publish_urn = 'rho:instances.owner'
 
@@ -163,10 +169,14 @@ class SearchRequestTestCase(unittest.TestCase):
 
             self.assertEqual(result, [publish_urn, publish_urn])
 
-    def test_response_with_source_received(self):
+            # Should not have any sources defined.
+            callback_results = args[0]
+
+            self.assertFalse(hasattr(callback_results, 'sources'))
+
+    def test_sources_retrieved(self):
 
         publish_urn = 'rho:instances.owner'
-        source_urn = 'xmpp:room@conference.local/nick?command;node=some_node'
 
         payload = StoragePayload()
         payload.add_type(FOAF.Person, RHO.Owner)
@@ -183,11 +193,13 @@ class SearchRequestTestCase(unittest.TestCase):
         response_payload = ResultCollectionPayload()
         response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
 
-        self.rdf_publisher._send_message(RDFStanzaType.SEARCH_RESPONSE, response_payload, thread_id)
+        search_command_node = 'search_command'
+
+        self.rdf_publisher._send_message(RDFStanzaType.RESPONSE, response_payload, thread_id,
+                                         source_command_node=search_command_node)
         response_args, response_kwargs = self.roster_plugin.send_message.call_args
 
         payload = response_kwargs['payload']
-        payload['source'] = source_urn
         response_message = Message()
         response_message.append(payload)
         response_message['thread'] = response_kwargs['thread_id']
@@ -197,15 +209,26 @@ class SearchRequestTestCase(unittest.TestCase):
 
             mock_promise_resolve.assert_not_called()
 
+        with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
+
             callback()
 
             self.assertEqual(1, mock_promise_resolve.call_count)
             args, kwargs = mock_promise_resolve.call_args
 
-            result = [rdf.about for rdf in args[0].results]
+            result_payload = args[0]
 
-            self.assertEqual(result, [publish_urn])
+            result = [rdf.about for rdf in result_payload.results]
 
-            self.assertTrue(hasattr(args[0], 'source'))
+            self.assertEqual(result, [publish_urn, ])
 
-            self.assertEqual(args[0].source, {source_urn})
+            self.assertTrue(hasattr(result_payload, 'sources'))
+
+            sources = list(result_payload.sources)
+
+            self.assertEqual(1, len(sources))
+
+            self.assertEqual('RhoBot Name', sources[0][0])
+            self.assertEqual('xmpp:rhobot@conference.local/bot?command;node=%s' % search_command_node,
+                             sources[0][1])
+

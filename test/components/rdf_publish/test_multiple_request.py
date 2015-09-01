@@ -8,7 +8,7 @@ from sleekxmpp.plugins.xep_0004 import Form, FormField, FieldOption
 from sleekxmpp import Message
 from rhobot.components.rdf_publish import rho_bot_rdf_publish, RDFStanzaType
 from rhobot.components.storage import StoragePayload, ResultCollectionPayload, ResultPayload
-from rdflib.namespace import FOAF, RDF, RDFS
+from rdflib.namespace import FOAF, RDF
 from rhobot.namespace import RHO
 
 
@@ -16,7 +16,7 @@ class MultipleRequestTestCase(unittest.TestCase):
 
     def setUp(self):
         self.scheduler_plugin = mock.MagicMock()
-        self.roster_plugin = mock.MagicMock()
+        self.roster_plugin = mock.MagicMock(**{'get_jid.return_value': 'rhobot@conference.local/bot'})
 
         plugins = {'rho_bot_scheduler': self.scheduler_plugin,
                    'rho_bot_roster': self.roster_plugin}
@@ -24,7 +24,7 @@ class MultipleRequestTestCase(unittest.TestCase):
         def getitem(name):
             return plugins.get(name, False)
 
-        self.xmpp = mock.MagicMock()
+        self.xmpp = mock.MagicMock(**{'name': 'test bot'})
         self.xmpp.__getitem__.side_effect = getitem
 
         self.rdf_publisher = rho_bot_rdf_publish(self.xmpp, None)
@@ -115,7 +115,7 @@ class MultipleRequestTestCase(unittest.TestCase):
 
             self.assertEqual(result, [publish_urn])
 
-    def test_responed_only_once(self):
+    def test_multiple_responses(self):
 
         publish_urn = 'rho:instances.owner'
 

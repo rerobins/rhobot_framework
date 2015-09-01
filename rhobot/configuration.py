@@ -5,6 +5,9 @@ import ConfigParser
 
 _configuration_parser = ConfigParser.ConfigParser()
 
+BOT_SECTION_NAME = 'bot'
+NAME_KEY = 'name'
+
 CONNECTION_SECTION_NAME = 'connection'
 JID_KEY = 'jid'
 PASSWORD_KEY = 'password'
@@ -29,6 +32,9 @@ def load_file(filename):
     _configuration_parser.read(filename)
 
 # Install the default parameters.
+_configuration_parser.add_section(BOT_SECTION_NAME)
+_configuration_parser.set(BOT_SECTION_NAME, NAME_KEY, 'bot_name')
+
 _configuration_parser.add_section(CONNECTION_SECTION_NAME)
 _configuration_parser.set(CONNECTION_SECTION_NAME, JID_KEY, 'user@host/resource')
 _configuration_parser.set(CONNECTION_SECTION_NAME, PASSWORD_KEY, 'password')

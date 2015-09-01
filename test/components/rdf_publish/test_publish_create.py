@@ -15,16 +15,16 @@ from rhobot.namespace import RHO
 class PublishCreateTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.pubsub_plugin = mock.MagicMock()
-        self.roster_plugin = mock.MagicMock()
+        self.scheduler_plugin = mock.MagicMock()
+        self.roster_plugin = mock.MagicMock(**{'get_jid.return_value': 'rhobot@conference.local/bot'})
 
-        plugins = {'rho_bot_scheduler': self.pubsub_plugin,
+        plugins = {'rho_bot_scheduler': self.scheduler_plugin,
                    'rho_bot_roster': self.roster_plugin}
 
         def getitem(name):
             return plugins.get(name, False)
 
-        self.xmpp = mock.MagicMock()
+        self.xmpp = mock.MagicMock(**{'name': 'test bot'})
         self.xmpp.__getitem__.side_effect = getitem
 
         self.rdf_publisher = rho_bot_rdf_publish(self.xmpp, None)

@@ -76,12 +76,16 @@ class StoragePayload:
 
         self._flags[enumeration] = true_value
 
-    def populate_payload(self):
+    def populate_payload(self, _container=None):
         """
         Translates the contents of this object into a payload for sending across to the storage entity.
         :return: the populated form
         """
-        container = Form()
+
+        if _container:
+            container = _container
+        else:
+            container = Form()
 
         if self.about:
             container.add_field(var=str(RDF.about), value=str(self.about), ftype=str(RDF.about))

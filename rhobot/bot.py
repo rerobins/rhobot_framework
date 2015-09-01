@@ -27,6 +27,9 @@ class RhoBot(sleekxmpp.ClientXMPP):
                                                          configuration.PASSWORD_KEY)
         sleekxmpp.ClientXMPP.__init__(self, jid, password)
 
+        self.name = configuration.get_configuration().get(configuration.BOT_SECTION_NAME,
+                                                          configuration.NAME_KEY)
+
         self.register_plugin('xep_0199')  # XMPP Ping
         self.register_plugin('rho_bot_scheduler', module='rhobot.components')
         self.register_plugin('rho_bot_configuration', module='rhobot.components')

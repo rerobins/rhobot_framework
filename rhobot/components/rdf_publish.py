@@ -53,12 +53,24 @@ class RDFStanza(ElementBase):
     name = 'rdf'
     namespace = 'rho:rdf'
     plugin_attrib = 'rdf'
-    interfaces = {'type', 'source', }
-    sub_interfaces = {'source', }
+    interfaces = {'type', }
 
-# TODO: Add the source stanza information
+
+class RDFSourceStanza(ElementBase):
+    """
+    Stanza responsible for providing details about the source of the data that is coming in.
+    """
+    name = 'source'
+    namespace = 'rdf:rho'
+    plugin_attrib = 'source'
+    interfaces = {'name', 'command', }
+    sub_interfaces = interfaces
+
 
 class RDFPublish(base_plugin):
+    """
+    Service that will send out requests and farm out the incoming messages to the appropriate handlers.
+    """
 
     name = 'rho_bot_rdf_publish'
     dependencies = {'rho_bot_roster', 'rho_bot_scheduler', }
@@ -71,6 +83,7 @@ class RDFPublish(base_plugin):
         """
         register_stanza_plugin(Message, RDFStanza)
         register_stanza_plugin(RDFStanza, Form)
+        register_stanza_plugin(RDFStanza, RDFSourceStanza)
 
         self.xmpp.add_event_handler(RosterComponent.CHANNEL_JOINED, self._channel_joined)
 
@@ -186,7 +199,28 @@ class RDFPublish(base_plugin):
         """
         self._search_handlers.append(callback)
 
-    def _send_message(self, mtype='ignore', payload=None, thread_id=None):
+    def _populate_rdf(self, mtype='ignore', payload=None, source_command_node=None):
+
+        result = RDFStanza()
+
+        if isinstance(mtype, RDFStanzaType):
+            result['type'] = mtype.value
+        else:
+            result['type'] = mtype
+
+        if payload:
+            result.append(payload.populate_payload())
+
+        if source_command_node:
+            source_stanza = RDFSourceStanza()
+            source_stanza['name'] = self.xmpp.name
+            source_stanza['command'] = 'xmpp:%s?command;node=%s' % (self.xmpp['rho_bot_roster'].get_jid(),
+                                                                    source_command_node)
+            result.append(source_stanza)
+
+        return result
+
+    def _send_message(self, mtype='ignore', payload=None, thread_id=None, source_command_node=None):
         """
         Create and RDF message and populate it with the payload for transmission.
         :param mtype:
@@ -194,17 +228,9 @@ class RDFPublish(base_plugin):
         :param thread_id:
         :return:
         """
-        rdf_stanza = RDFStanza()
-        if isinstance(mtype, RDFStanzaType):
-            rdf_stanza['type'] = mtype.value
-        else:
-            rdf_stanza['type'] = mtype
+        rdf_stanza = self._populate_rdf(mtype=mtype, payload=payload, source_command_node=source_command_node)
 
-        if payload:
-            rdf_stanza.append(payload.populate_payload())
-
-        self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza,
-                                                 thread_id=thread_id)
+        self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza, thread_id=thread_id)
 
     def _receive_message(self, message):
         """
@@ -362,13 +388,14 @@ class RDFPublish(base_plugin):
 
                 # Store off the sources if necessary
                 if rdf['source']:
-                    if hasattr(results, 'source'):
+                    if hasattr(results, 'sources'):
                         sources = results.sources
                     else:
                         sources = set()
 
-                    sources.add(rdf['source'])
-                    results.source = sources
+                    if rdf['source']['command']:
+                        sources.add((rdf['source']['name'], rdf['source']['command']))
+                        results.sources = sources
 
         return multiple_fetch
 

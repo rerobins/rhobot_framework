@@ -52,6 +52,9 @@ class RosterComponent(base_plugin):
         self.xmpp.add_event_handler("muc::%s::got_offline" % self._channel_name,
                                     self._offline_helper)
 
+    def get_jid(self):
+        return self.xmpp['xep_0045'].getOurJidInRoom(self._channel_name)
+
     def add_message_received_listener(self, callback, ignore_self=True):
         """
         Adds a message received listener to the messages that are published to the channel.
@@ -144,5 +147,6 @@ class RosterComponent(base_plugin):
                 callback(message)
 
         return new_callback
+
 
 rho_bot_roster = RosterComponent
