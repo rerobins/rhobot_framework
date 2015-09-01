@@ -197,6 +197,14 @@ class Scheduler(base_plugin):
         :return:
         """
 
+    def post_init(self):
+        """
+        Patch builtin plugins to work with promises without breaking current functionality.
+        :return:
+        """
+        if self.xmpp['xep_0050']:
+            _patch_command_processing(self.xmpp['xep_0050'])
+
     def schedule_task(self, callback, delay=1.0, repeat=False, execute_now=False):
         """
         Schedule a task that is to be executed by the scheduling thread of the bot.
@@ -237,3 +245,38 @@ class Scheduler(base_plugin):
 
 # Define the plugin that will be used to access this plugin.
 rho_bot_scheduler = Scheduler
+
+
+def _patch_command_processing(command_plugin):
+    """
+    Patches the command processing functionality to work with promises.
+    :param command_plugin: command plugin to modify.
+    :return:
+    """
+
+    if hasattr(command_plugin.__class__, '_old_process_command_response'):
+        logger.debug('Already patched')
+        return
+
+    command_plugin.__class__._old_process_command_response = command_plugin.__class__._process_command_response
+
+    def new_command_response(self, iq, session):
+
+        promise_or_session = session
+
+        # Can assume that the promise_or_session is a promise.
+        if hasattr(promise_or_session, 'then'):
+            logger.debug('Handling a promise')
+
+            def promise_handler(_session):
+                logger.debug('Promise resolved')
+                self._old_process_command_response(iq, _session)
+
+            promise_or_session.then(promise_handler)
+        else:
+            logger.debug('Handling default path')
+            self._old_process_command_response(iq, promise_or_session)
+
+    command_plugin.__class__._process_command_response = new_command_response
+
+    logger.debug('Patching the command processing plugin')
