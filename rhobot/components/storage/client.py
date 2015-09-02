@@ -144,18 +144,21 @@ class StorageClient(base_plugin):
 
         return StoragePayload(result['command']['form'])
 
-    def execute_cypher(self, query):
+    def execute_cypher(self, query, **params):
         """
         Execute a cypher query and return the results to the requester.
         :param query: query string.
         :return: ResultCollectionPayload
         """
         storage = self.create_payload()
-
         storage.add_property(key=NEO4J.cypher, value=query)
 
+        payload = storage.populate_payload()
+
+        _build_property_fields(payload, params)
+
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CYPHER.value,
-                                                    payload=storage.populate_payload(), flow=False)
+                                                    payload=payload, flow=False)
 
         logger.info('result: %s' % result)
 
