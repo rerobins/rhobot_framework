@@ -31,13 +31,14 @@ class ResultPayload:
             self.add_type(*types)
         self.about = about
 
+        self._flags = dict()
+
         if flags:
             if isinstance(flags, dict):
-                self._flags = flags
+                for key, value in flags.iteritems():
+                    self.add_flag(key, value)
             elif isinstance(flags, basestring):
                 self._flags = json.loads(flags)
-        else:
-            self._flags = dict()
 
     def add_type(self, *args):
         """
@@ -55,7 +56,15 @@ class ResultPayload:
         :param value: value.
         :return:
         """
-        self._flags[str(key)] = value
+        flag_values = self._flags.get(str(key), [])
+
+        if isinstance(value, list):
+            for val in value:
+                flag_values.append(str(val))
+        else:
+            flag_values.append(str(value))
+
+        self._flags[str(key)] = flag_values
 
     @property
     def types(self):
@@ -90,13 +99,13 @@ class ResultCollectionPayload:
             self._container = container
             self._unpack_container()
 
-    def append(self, result):
+    def append(self, *args):
         """
         Append a result to the collection.
         :param result:
         :return:
         """
-        self._results.append(result)
+        self._results += args
 
     def _unpack_container(self):
         """
@@ -136,7 +145,7 @@ class ResultCollectionPayload:
             additional_flags.update(result.flags.keys())
 
         for flag_value in additional_flags:
-            self._container.add_reported(var=flag_value, ftype='text-single')
+            self._container.add_reported(var=flag_value, ftype='text-multi')
 
         for result in self._results:
             parameters = {
