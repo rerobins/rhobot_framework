@@ -318,10 +318,10 @@ class RDFPublish(base_plugin):
         :return:
         """
         for handler in self._search_handlers:
-            response = handler(rdf_payload)
+            response, source_command_node = handler(rdf_payload)
             if response:
                 self._send_message(mtype=RDFStanzaType.RESPONSE, payload=response,
-                                   thread_id=message.get('thread', None))
+                                   thread_id=message.get('thread', None), source_command_node=source_command_node)
 
     def _search_response(self, message, rdf_payload):
         """
