@@ -15,7 +15,7 @@ Promises selecting all responses will have to wait for the timeout to occur befo
 
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.xmlstream import ElementBase, register_stanza_plugin
-from sleekxmpp.plugins.xep_0004.stanza.form import Form
+from sleekxmpp.plugins.xep_0004 import Form, FormField
 from sleekxmpp import Message
 from rhobot.components.roster import RosterComponent
 from rhobot.components.scheduler import Promise
@@ -35,6 +35,15 @@ class RDFStanzaType(Enum):
     UPDATE = 'update'
     SEARCH_REQUEST = 'search'
     SEARCH_RESPONSE = 'search_response'
+
+class RDFType(ElementBase):
+    """
+    Stanza that will allow for typing information to be placed in the form field.
+    """
+    name = 'rdftype'
+    namespace = 'rho:rdf'
+    plugin_attrib = 'rdftype'
+    interfaces = {'type', }
 
 
 class RDFStanza(ElementBase):
@@ -84,6 +93,7 @@ class RDFPublish(base_plugin):
         register_stanza_plugin(Message, RDFStanza)
         register_stanza_plugin(RDFStanza, Form)
         register_stanza_plugin(RDFStanza, RDFSourceStanza)
+        register_stanza_plugin(FormField, RDFSourceStanza, iterable=True)
 
         self.xmpp.add_event_handler(RosterComponent.CHANNEL_JOINED, self._channel_joined)
 
