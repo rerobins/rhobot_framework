@@ -14,66 +14,19 @@ Promises selecting all responses will have to wait for the timeout to occur befo
 """
 
 from sleekxmpp.plugins.base import base_plugin
-from sleekxmpp.xmlstream import ElementBase, register_stanza_plugin
+from sleekxmpp.xmlstream import register_stanza_plugin
 from sleekxmpp.plugins.xep_0004 import Form, FormField
 from sleekxmpp import Message
 from rhobot.components.roster import RosterComponent
 from rhobot.components.scheduler import Promise
 from rhobot.components.storage import ResultCollectionPayload
+from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDFStanzaType, RDFType
 import logging
 import uuid
-from enum import Enum
 from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
 
 logger = logging.getLogger(__name__)
 
-
-class RDFStanzaType(Enum):
-    REQUEST = 'request'
-    RESPONSE = 'response'
-    CREATE = 'create'
-    UPDATE = 'update'
-    SEARCH_REQUEST = 'search'
-    SEARCH_RESPONSE = 'search_response'
-
-class RDFType(ElementBase):
-    """
-    Stanza that will allow for typing information to be placed in the form field.
-    """
-    name = 'rdftype'
-    namespace = 'rho:rdf'
-    plugin_attrib = 'rdftype'
-    interfaces = {'type', }
-
-
-class RDFStanza(ElementBase):
-    """
-    Stanza responsible for requesting and responding to rdf requests.
-    <rdf xmlns='rho:rdf' type='request|response'>
-        <x xmlns='data'... />
-        <source>
-            <name>Some Name</name>
-            <command>xmpp:jid@jiddomain.com?command;node=some_node;action=execute</command>
-        </source>
-    </rdf>
-
-    source provides a command that can be used to search for other valid details.
-    """
-    name = 'rdf'
-    namespace = 'rho:rdf'
-    plugin_attrib = 'rdf'
-    interfaces = {'type', }
-
-
-class RDFSourceStanza(ElementBase):
-    """
-    Stanza responsible for providing details about the source of the data that is coming in.
-    """
-    name = 'source'
-    namespace = 'rdf:rho'
-    plugin_attrib = 'source'
-    interfaces = {'name', 'command', }
-    sub_interfaces = interfaces
 
 
 class RDFPublish(base_plugin):
@@ -94,6 +47,7 @@ class RDFPublish(base_plugin):
         register_stanza_plugin(RDFStanza, Form)
         register_stanza_plugin(RDFStanza, RDFSourceStanza)
         register_stanza_plugin(FormField, RDFSourceStanza, iterable=True)
+        register_stanza_plugin(FormField, RDFType)
 
         self.xmpp.add_event_handler(RosterComponent.CHANNEL_JOINED, self._channel_joined)
 

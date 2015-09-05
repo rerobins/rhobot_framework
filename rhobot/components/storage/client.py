@@ -7,7 +7,9 @@ from sleekxmpp.plugins.base import base_plugin
 from rhobot.components.storage.enums import Commands
 from rhobot.components.storage.events import STORAGE_FOUND, STORAGE_LOST
 from rhobot.components.storage.payload import StoragePayload, ResultCollectionPayload
-from rhobot.components.storage.namespace import NEO4J
+from rhobot.components.stanzas.rdf_stanza import RDFType
+from sleekxmpp.plugins.xep_0004 import FormField
+from sleekxmpp.xmlstream import register_stanza_plugin
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ class StorageClient(base_plugin):
 
     def plugin_init(self):
         self._storage_jid = None
+        register_stanza_plugin(FormField, RDFType)
 
     def post_init(self):
         self.xmpp.add_event_handler('online:store', self._store_found)
@@ -71,21 +74,20 @@ class StorageClient(base_plugin):
         """
         return self._storage_jid is not None
 
-    def create_node(self, payload, **params):
+    def create_node(self, payload):
         """
         Create a new node with the provided payload
         :param payload: payload to store in the data store.
         :return: ResultCollectionPayload
         """
         storage = payload.populate_payload()
-        _build_property_fields(storage, params)
 
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CREATE_NODE.value,
                                                     payload=storage, flow=False)
 
         return ResultCollectionPayload(result['command']['form'])
 
-    def find_nodes(self, payload, **params):
+    def find_nodes(self, payload):
         """
         Basic search for a node.
         :param payload: StoragePayload containing a description of a node that is being searched for.
@@ -94,8 +96,6 @@ class StorageClient(base_plugin):
         """
         storage = payload.populate_payload()
 
-        _build_property_fields(storage, params)
-
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.FIND_NODE.value,
                                                     payload=storage, flow=False)
 
@@ -103,7 +103,7 @@ class StorageClient(base_plugin):
 
         return ResultCollectionPayload(result['command']['form'])
 
-    def update_node(self, payload, **params):
+    def update_node(self, payload):
         """
         Update the node described in the payload about, with the values provided.
         :param payload: payload that describes the node and the updated field values
@@ -115,8 +115,6 @@ class StorageClient(base_plugin):
 
         storage = payload.populate_payload()
 
-        _build_property_fields(storage, params)
-
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.UPDATE_NODE.value,
                                                     payload=storage, flow=False)
 
@@ -124,7 +122,7 @@ class StorageClient(base_plugin):
 
         return ResultCollectionPayload(result['command']['form'])
 
-    def get_node(self, payload, **params):
+    def get_node(self, payload):
         """
         Retrieve all of the details about a node from the storage provider.
         :param payload: payload containing an about for the object.
@@ -135,7 +133,6 @@ class StorageClient(base_plugin):
             raise AttributeError('Missing about field in the storage payload')
 
         storage = payload.populate_payload()
-        _build_property_fields(storage, params)
 
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.GET_NODE.value,
                                                     payload=storage, flow=False)
@@ -144,21 +141,16 @@ class StorageClient(base_plugin):
 
         return StoragePayload(result['command']['form'])
 
-    def execute_cypher(self, query, **params):
+    def execute_cypher(self, payload):
         """
         Execute a cypher query and return the results to the requester.
-        :param query: query string.
+        :param payload: containing the query
         :return: ResultCollectionPayload
         """
-        storage = self.create_payload()
-        storage.add_property(key=NEO4J.cypher, value=query)
-
-        payload = storage.populate_payload()
-
-        _build_property_fields(payload, params)
+        storage = payload.populate_payload()
 
         result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CYPHER.value,
-                                                    payload=payload, flow=False)
+                                                    payload=storage, flow=False)
 
         logger.info('result: %s' % result)
 
@@ -166,12 +158,3 @@ class StorageClient(base_plugin):
 
 
 rho_bot_storage_client = StorageClient
-
-
-def _build_property_fields(form, params):
-
-    for key, value in params.iteritems():
-        if isinstance(key, enum.Enum):
-            form.add_field(var=key.value['var'], value=value, type=key.type)
-        else:
-            form.add_field(var=key, value=value, type='hidden')

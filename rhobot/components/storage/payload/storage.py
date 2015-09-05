@@ -3,6 +3,8 @@ Storage payload definition.  Responsible for providing basic payloads for passin
 """
 from rdflib.namespace import RDF, RDFS
 from sleekxmpp.plugins.xep_0004 import Form
+from rhobot.components.stanzas.rdf_stanza import RDFType
+from rhobot.components.storage.enums import Flag
 
 class StoragePayload:
     """
@@ -88,19 +90,31 @@ class StoragePayload:
             container = Form()
 
         if self.about:
-            container.add_field(var=str(RDF.about), value=str(self.about), ftype=str(RDF.about))
+            about_field = container.add_field(var=str(RDF.about), value=str(self.about), ftype='text-single')
+            type_stanza = RDFType()
+            type_stanza['type'] = str(RDF.about)
+            about_field.append(type_stanza)
 
         if len(self._types):
-            container.add_field(var=str(RDF.type), value=self._types, ftype=str(RDF.type))
+            type_field = container.add_field(var=str(RDF.type), value=self._types, ftype='list-multi')
+            type_stanza = RDFType()
+            type_stanza['type'] = str(RDF.type)
+            type_field.append(type_stanza)
 
         for key, value in self._properties.iteritems():
-            container.add_field(var=str(key), value=value, ftype=str(RDFS.Literal))
+            property_field = container.add_field(var=str(key), value=value, ftype='list-multi')
+            type_stanza = RDFType()
+            type_stanza['type'] = str(RDFS.Literal)
+            property_field.append(type_stanza)
 
         for key, value in self._references.iteritems():
-            container.add_field(var=str(key), value=value, ftype=str(RDFS.Resource))
+            reference_field = container.add_field(var=str(key), value=value, ftype='list-multi')
+            type_stanza = RDFType()
+            type_stanza['type'] = str(RDFS.Resource)
+            reference_field.append(type_stanza)
 
         for key, value in self._flags.iteritems():
-            container.add_field(var=key.value['var'], value=value, ftype=key.value['type'])
+            container.add_field(var=key.var, value=value, ftype=key.field_type)
 
         return container
 
@@ -114,16 +128,20 @@ class StoragePayload:
         self._references = {}
 
         for key, value in container.field.iteritems():
+            rdf_type = value['rdftype']['type']
+            field_type = value['type']
+
             if key == str(RDF.about):
                 self.about = value.get_value()
-            elif value['type'] == str(RDF.type):
+            elif key == str(RDF.type):
                 self._types = value.get_value()
-            elif value['type'] == str(RDFS.Literal):
+            elif rdf_type == str(RDFS.Literal):
                 self._properties[key] = value.get_value()
-            elif value['type'] == str(RDFS.Resource):
+            elif rdf_type == str(RDFS.Resource):
                 self._references[key] = value.get_value()
             else:
-                self._flags[key] = value['value']
+                key = Flag(*(key, field_type, None))
+                self._flags[key] = value.get_value()
 
     @property
     def types(self):

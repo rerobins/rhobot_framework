@@ -49,15 +49,17 @@ class RDFStanzaTestCase(SleekTest):
             <message>
                 <rdf xmlns="rho:rdf" type="create">
                     <x xmlns="jabber:x:data" type="form">
-                      <field var="%s" type="%s">
+                      <field var="%s" type="text-single">
                         <value>%s</value>
+                        <rdftype xmlns="rho:rdf" type="%s" />
                       </field>
-                      <field var="%s" type="%s">
+                      <field var="%s" type="list-multi">
                         <value>%s</value>
                         <value>%s</value>
+                        <rdftype xmlns="rho:rdf" type="%s" />
                       </field>
                     </x>
                 </rdf>
             </message>
-        """ % (str(RDF.about), str(RDF.about), payload.about,
-               str(RDF.type), str(RDF.type), str(FOAF.Person), str(RHO.Owner)), use_values=False)
+        """ % (str(RDF.about), payload.about, str(RDF.about),
+               str(RDF.type), str(FOAF.Person), str(RHO.Owner), str(RDF.type)), use_values=False)
