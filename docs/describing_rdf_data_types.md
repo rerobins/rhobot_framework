@@ -4,7 +4,7 @@ RDF data types are defined through the use of XEP-0004 Data Forms.  It adds addi
 order to provide details as to the values that are defined.
 
 ```xml
-<rdf xmlns="rho:rdf" type="publish_create">
+<rdf xmlns="urn:rho:rdf" type="publish_create">
   <x xmlns="jabber:x:data" type="form">
     <!-- Provide the unique URI for the data node -->
     <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single">
@@ -45,11 +45,11 @@ used as follows:
   <value>http://www.example.org/instances/member_01</value>
   <value>http://www.example.org/instances/member_02</value>
   <value>http://www.example.org/instances/member_03</value>
-  <rdftype xmlns="rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+  <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Resource"/>
 </field>
 ```
 
-In this example the `rho:rdf:rdftype.type` value is defined as being rdf:Resource.
+In this example the `urn:rho:rdf:rdftype.type` value is defined as being rdf:Resource.
 
 ### Defining Property Fields
 
@@ -58,8 +58,8 @@ Property fields are definitions that can be used to define a specific property o
 ```xml
 <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
   <value>John Smith</value>
-  <rdftype xmlns="rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal"/>
+  <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal"/>
 </field>
 ```
 
-In this example the `rho:rdf:rdftype.type` value is defined as being rdf:Literal.
+In this example the `urn:rho:rdf:rdftype.type` value is defined as being rdf:Literal.

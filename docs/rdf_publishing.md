@@ -18,7 +18,7 @@ types that define this subject's defined types.
 ```xml
 <message to="channel@conference.example.org" type="groupchat">
   <body>Some Body</body>
-  <rdf xmlns="rho:rdf" type="publish_create">
+  <rdf xmlns="urn:rho:rdf" type="publish_create">
     <x xmlns="jabber:x:data" type="form">
       <!-- Provide the unique URI for the data node -->
       <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single">
@@ -34,7 +34,7 @@ types that define this subject's defined types.
 </message>
 ```
 
-In this example the `rho:rdf:rdf.type` is set to `publish_create`.
+In this example the `urn:rho:rdf:rdf.type` is set to `publish_create`.
 
 ### Update
 
@@ -43,7 +43,7 @@ This message type is fired off ONLY WHEN current data is modified.
 ```xml
 <message to="channel@conference.example.org" type="groupchat">
   <body>Some Body</body>
-  <rdf xmlns="rho:rdf" type="publish_update">
+  <rdf xmlns="urn:rho:rdf" type="publish_update">
     <x xmlns="jabber:x:data" type="form">
       <!-- Provide the unique URI for the data node -->
       <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single">
@@ -59,7 +59,7 @@ This message type is fired off ONLY WHEN current data is modified.
 </message>
 ```
 
-In this example the `rho:rdf:rdf.type` is set to `publish_update`.
+In this example the `urn:rho:rdf:rdf.type` is set to `publish_update`.
  
 ## Search Request
 
@@ -74,7 +74,7 @@ that provide the required functionality.
 <message to="channel@conference.example.org" type="groupchat">
   <body>Some Body</body>
 
-  <rdf xmlns="rho:rdf" type="request">
+  <rdf xmlns="urn:rho:rdf" type="request">
     <x xmlns="jabber:x:data" type="form">
       <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi">
         <value>http://xmlns.com/foaf/0.1/Agent</value>
@@ -95,7 +95,7 @@ that are defined by the FOAF:Agent data definition.
 #### Important content
 
 * thread value should be used by all responders in order to correlate results with requests.
-* `rho:rdf:rdf.type` is set to request.
+* `urn:rho:rdf:rdf.type` is set to request.
 
 ## Search Responses
 
@@ -105,7 +105,7 @@ Responding to search requests are implemented as `message` stanzas.
 <message to="channel@conference.example.org" type="groupchat">
   <body>Some Body</body>
 
-  <rdf xmlns="rho:rdf" type="response">
+  <rdf xmlns="urn:rho:rdf" type="response">
     <x xmlns="jabber:x:data" type="form">
       <reported>
         <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single" />
