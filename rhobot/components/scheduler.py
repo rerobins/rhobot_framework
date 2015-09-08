@@ -242,6 +242,16 @@ class Scheduler(base_plugin):
         """
         return Promise(self)
 
+    def generate_callback_promise(self, _promise):
+        """
+        Generate a callback that can be used with iq.send(callback) in order to use promises.
+        :param _promise: promise to resolve when the call back is returned.
+        """
+        def method(result):
+            _promise.resolved(result)
+
+        return method
+
 
 # Define the plugin that will be used to access this plugin.
 rho_bot_scheduler = Scheduler

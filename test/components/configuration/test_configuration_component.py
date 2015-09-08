@@ -1,53 +1,235 @@
 """
 Unit tests for the configuration component.
 """
-from rhobot.components import rho_bot_configuration
-from sleekxmpp.plugins.xep_0004 import Form
+from sleekxmpp.test import SleekTest
 import unittest
-import mock
 import time
 
 
-class ConfigurationComponentTestCase(unittest.TestCase):
+class ConfigurationComponentTestCase(SleekTest):
 
     def setUp(self):
-        self.pubsub_plugin = mock.MagicMock()
-        self.form_plugin = mock.Mock()
-        self.form_plugin.make_form = mock.Mock(return_value=Form())
+        self.session = {}
+        self.stream_start(plugins=['xep_0060'])
+        self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
+        self.xmpp.register_plugin('rho_bot_configuration', module='rhobot.components')
+        self.scheduler = self.xmpp['rho_bot_scheduler']
 
-        plugins = {'xep_0060': self.pubsub_plugin,
-                   'xep_0004': self.form_plugin}
+        self.xmpp['rho_bot_configuration'].plugin_init()
 
-        def getitem(name):
-            return plugins.get(name, False)
+    def tearDown(self):
+        self.stream_close()
 
-        self.xmpp = mock.MagicMock()
-        self.xmpp.__getitem__.side_effect = getitem
+    def test_find_nodes_does_not_exist(self):
 
-        self.configuration_plugin = rho_bot_configuration(self.xmpp, None)
+        self.xmpp['rho_bot_configuration']._start('session_start')
 
-    def test_node_not_defined(self):
+        # Make sure that the node has sent out it's initial request.
+        self.send("""
+            <iq to="tester@localhost" type="get" id="1">
+                <query xmlns="http://jabber.org/protocol/disco#items" />
+            </iq>
+        """)
 
-        self.configuration_plugin._start('event')
+        # Fake receiving a message that doesn't contain the items.
+        self.recv("""
+            <iq from="tester@localhost" type="result" id="1" to="tester@localhost/full">
+                <query xmlns="http://jabber.org/protocol/disco#items" />
+            </iq>
+        """)
 
-        self.assertEqual(self.pubsub_plugin.get_nodes.call_count, 1)
-        args, kwargs = self.pubsub_plugin.get_nodes.call_args
-        callback = kwargs['callback']
+        time.sleep(0.2)
 
-        stanza = dict(disco_items=dict(items=[]))
-        callback(stanza)
+        # Check to make sure that a new node has been created.
+        self.send("""
+            <iq to="tester@localhost" type="set" id="2">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <create node="rho:configuration" />
+                    <configure>
+                        <x xmlns="jabber:x:data" type="submit">
+                            <title>Node Configuration</title>
+                            <field var="pubsub#access_model"><value>whitelist</value></field>
+                            <field var="pubsub#persist_items"><value>1</value></field>
+                            <field var="pubsub#max_items"><value>1</value></field>
+                            <field var="FORM_TYPE"><value>http://jabber.org/protocol/pubsub#node_config</value></field>
+                        </x>
+                    </configure>
+                </pubsub>
+            </iq>
+        """)
 
-        self.assertEqual(self.pubsub_plugin.create_node.call_count, 1)
-        args, kwargs = self.pubsub_plugin.create_node.call_args
+        # Send back the response when the node is created.
+        self.recv("""
+            <iq type="result"
+                from="tester@localhost"
+                to="tester@localhost/full"
+                id="2"/>
+        """)
 
-        self.assertEqual(self.configuration_plugin._configuration_data_node, kwargs['node'])
+        time.sleep(0.2)
 
-        self.assertIsNotNone(kwargs['config'])
-        self.assertEqual(kwargs['config'].get_fields().get('pubsub#access_model').get_value(), 'whitelist')
-        self.assertEqual(kwargs['config'].get_fields().get('pubsub#persist_items').get_value(), '1')
-        self.assertEqual(kwargs['config'].get_fields().get('pubsub#max_items').get_value(), '1')
+        # Check to see if it requests the node now.
+        self.send("""
+            <iq to="tester@localhost" type="get" id="3">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <items node="rho:configuration" />
+                </pubsub>
+            </iq>
+        """)
 
+        # Send back absolutely no configuration.
+        self.recv("""
+            <iq from="tester@localhost" type="result" id="3" to="tester@localhost/full">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <items node="rho:configuration">
+                        <item id="81725617-699c-4909-be22-8ae3721068b14">
+                        </item>
+                    </items>
+                </pubsub>
+            </iq>
+        """)
 
+        time.sleep(0.2)
+
+        configuration = self.xmpp['rho_bot_configuration'].get_configuration()
+
+        self.assertDictEqual(dict(), configuration)
+
+    def test_configuratoin_defined(self):
+
+        self.xmpp['rho_bot_configuration']._start('session_start')
+
+        # Make sure that the node has sent out it's initial request.
+        self.send("""
+            <iq to="tester@localhost" type="get" id="1">
+                <query xmlns="http://jabber.org/protocol/disco#items" />
+            </iq>
+        """)
+
+        # Fake receiving a message that doesn't contain the items.
+        self.recv("""
+            <iq from="tester@localhost" type="result" id="1" to="tester@localhost/full">
+                <query xmlns="http://jabber.org/protocol/disco#items">
+                    <item node="rho:configuration" jid="tester@localhost" />
+                </query>
+            </iq>
+        """)
+
+        time.sleep(0.2)
+
+        # Check to see if it requests the node now.
+        self.send("""
+            <iq to="tester@localhost" type="get" id="2">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <items node="rho:configuration" />
+                </pubsub>
+            </iq>
+        """)
+
+        # Send back a configuration.
+        self.recv("""
+            <iq from="tester@localhost" type="result" id="2" to="tester@localhost/full">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <items node="rho:configuration">
+                        <item id="81725617-699c-4909-be22-8ae3721068b14">
+                            <configuration xmlns="rho:configuration">
+                                <entry>
+                                    <key>access_token</key>
+                                    <value>this_is_my_access_token</value>
+                                </entry>
+                                <entry>
+                                    <key>secret</key>
+                                    <value>this_is_my_secret</value>
+                                </entry>
+                            </configuration>
+                        </item>
+                    </items>
+                </pubsub>
+            </iq>
+        """)
+
+        time.sleep(0.2)
+
+        configuration = self.xmpp['rho_bot_configuration'].get_configuration()
+
+        self.assertDictEqual(dict(access_token='this_is_my_access_token',
+                                  secret='this_is_my_secret'),
+                             configuration)
+
+    def test_get_values(self):
+
+        self.xmpp['rho_bot_configuration'].get_configuration()['key'] = 'value'
+
+        result = self.xmpp['rho_bot_configuration'].get_value('key', 'default')
+
+        self.assertEquals(result, 'value')
+
+        result = self.xmpp['rho_bot_configuration'].get_value('other_key', None)
+
+        self.assertEquals(result, None)
+
+        # Test an actual value to not be saved
+        result = self.xmpp['rho_bot_configuration'].get_value('other_key', False, persist_if_missing=False)
+
+        self.assertEquals(result, False)
+
+        # Test an actual value to be saved
+        result = self.xmpp['rho_bot_configuration'].get_value('other_key', False, persist_if_missing=True)
+
+        self.assertEquals(result, False)
+
+        self.send("""
+            <iq to="tester@localhost" type="set" id="1">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <publish node="rho:configuration">
+                        <item>
+                            <configuration xmlns="rho:configuration">
+                                <entry>
+                                    <key>key</key>
+                                    <value>value</value>
+                                </entry>
+                                <entry>
+                                    <key>other_key</key>
+                                    <value>False</value>
+                                </entry>
+                            </configuration>
+                        </item>
+                    </publish>
+                </pubsub>
+            </iq>
+        """)
+
+    def test_merge_updates(self):
+
+        self.xmpp['rho_bot_configuration'].merge_configuration(dict(key='value'), persist=False)
+
+        result = self.xmpp['rho_bot_configuration'].get_value('key', 'default')
+
+        self.assertEquals(result, 'value')
+
+        # Test an actual value to be saved
+        self.xmpp['rho_bot_configuration'].merge_configuration(dict(other_key=False), persist=True)
+
+        self.send("""
+            <iq to="tester@localhost" type="set" id="1">
+                <pubsub xmlns="http://jabber.org/protocol/pubsub">
+                    <publish node="rho:configuration">
+                        <item>
+                            <configuration xmlns="rho:configuration">
+                                <entry>
+                                    <key>key</key>
+                                    <value>value</value>
+                                </entry>
+                                <entry>
+                                    <key>other_key</key>
+                                    <value>False</value>
+                                </entry>
+                            </configuration>
+                        </item>
+                    </publish>
+                </pubsub>
+            </iq>
+        """)
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(ConfigurationComponentTestCase)

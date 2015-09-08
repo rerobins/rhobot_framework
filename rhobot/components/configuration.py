@@ -42,16 +42,13 @@ class EntryStanza(ElementBase):
     sub_interfaces = interfaces
 
 
-register_stanza_plugin(ConfigurationStanza, EntryStanza, iterable=True)
-
-
 class BotConfiguration(base_plugin):
 
     CONFIGURATION_RECEIVED_EVENT = 'rho::configuration_received'
     CONFIGURATION_UPDATED_EVENT = 'rho::configuration_updated'
     _configuration_data_node = 'rho:configuration'
     name = 'rho_bot_configuration'
-    dependencies = {'xep_0060'}
+    dependencies = {'xep_0060', 'rho_bot_scheduler', }
     description = 'Configuration Plugin'
 
     def plugin_init(self):
@@ -61,6 +58,7 @@ class BotConfiguration(base_plugin):
         """
         self._configuration = dict()
         register_stanza_plugin(Item, ConfigurationStanza)
+        register_stanza_plugin(ConfigurationStanza, EntryStanza, iterable=True)
         self.xmpp.add_event_handler("session_start", self._start)
 
     def _start(self, event):
@@ -69,18 +67,22 @@ class BotConfiguration(base_plugin):
         listeners that configuration details have been fetched from the server.
         :return:
         """
+        promise = self.xmpp['rho_bot_scheduler'].promise()
+        self.xmpp['xep_0060'].get_nodes(jid=self.xmpp.boundjid.bare,
+                                        callback=self.xmpp['rho_bot_scheduler'].generate_callback_promise(promise))
+        promise = promise.then(self._found_nodes)
+        promise = promise.then(None, self._create_node)
+        promise = promise.then(self._fetch_configuration)
+        promise.then(self._configuration_data_retrieved)
 
-        def get_nodes_callback(stanza):
-            self._found_nodes(stanza, callback=self._fetch_configuration)
-
-        self.xmpp['xep_0060'].get_nodes(jid=self.xmpp.boundjid, callback=get_nodes_callback)
-
-    def _found_nodes(self, stanza, callback=None):
+    def _found_nodes(self, stanza):
         """
         Check to see if the configuration node is defined or not.  If it's not defined, then create it.
         :param stanza:
         :return:
         """
+        promise = self.xmpp['rho_bot_scheduler'].promise()
+
         logger.info('Found Nodes: %s' % stanza)
 
         found = False
@@ -90,25 +92,31 @@ class BotConfiguration(base_plugin):
                 break
 
         if found:
-            if callback:
-                callback()
+            promise.resolved(None)
         else:
-            self._create_node(callback=callback)
+            promise.rejected('Node not found')
 
-    def _fetch_configuration(self, stanza=None):
+        return promise
+
+    def _fetch_configuration(self, ignored):
         """
         Request that the configuration be loaded.
         :return:
         """
+        promise = self.xmpp['rho_bot_scheduler'].promise()
         logger.info('Fetching Configuration: %s' % self._configuration_data_node)
         self.xmpp['xep_0060'].get_items(jid=self.xmpp.boundjid.bare, node=self._configuration_data_node,
-                                        callback=self._configuration_data_retrieved)
+                                        callback=self.xmpp['rho_bot_scheduler'].generate_callback_promise(promise))
 
-    def _create_node(self, callback=None):
+        return promise
+
+    def _create_node(self, ignored):
         """
         Create the configuration storage node, and then store the data.
         :return:
         """
+        promise = self.xmpp['rho_bot_scheduler'].promise()
+
         logger.info('Creating node: %s' % self._configuration_data_node)
 
         configuration_form = self.xmpp['xep_0004'].make_form(ftype='submit', title='Node Configuration')
@@ -118,8 +126,10 @@ class BotConfiguration(base_plugin):
 
         self.xmpp['xep_0060'].create_node(jid=self.xmpp.boundjid.bare,
                                           node=self._configuration_data_node,
-                                          callback=callback,
+                                          callback=self.xmpp['rho_bot_scheduler'].generate_callback_promise(promise),
                                           config=configuration_form)
+
+        return promise
 
     def _configuration_data_retrieved(self, stanza):
         """
@@ -129,7 +139,7 @@ class BotConfiguration(base_plugin):
         retrieved.
         :return:
         """
-        logger.info('Received configuration data: %s' % stanza)
+        logger.debug('Received configuration data: %s' % stanza)
 
         configuration_node = stanza['pubsub']['items']['item']['configuration']
 
@@ -146,11 +156,12 @@ class BotConfiguration(base_plugin):
         """
         configuration_stanza = ConfigurationStanza()
 
-        for key, value in self._configuration.iteritems():
-            configuration_stanza.add_entry(key, value)
+        for key in sorted(self._configuration.keys()):
+            configuration_stanza.add_entry(key, self._configuration[key])
 
         self.xmpp['xep_0060'].publish(jid=self.xmpp.boundjid.bare, payload=configuration_stanza,
-                                      node=self._configuration_data_node)
+                                      node=self._configuration_data_node,
+                                      block=False)
 
         self.xmpp.event(self.CONFIGURATION_UPDATED_EVENT)
 
@@ -170,14 +181,14 @@ class BotConfiguration(base_plugin):
         :param persist_if_missing: should the value be persisted if it's not in the configuration value.
         :return:
         """
-        value = self._configuration.get(key, None)
-        if not value:
-            value = default
-            if persist_if_missing and value:
-                self._configuration[key] = value
-                self.store_data()
 
-        return value
+        if key in self._configuration:
+            return self._configuration[key]
+        elif default is not None and persist_if_missing:
+            self._configuration[key] = default
+            self.store_data()
+
+        return default
 
     def merge_configuration(self, configuration_dictionary, persist=True):
         """
