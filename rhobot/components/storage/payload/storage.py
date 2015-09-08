@@ -90,16 +90,10 @@ class StoragePayload:
             container = Form()
 
         if self.about:
-            about_field = container.add_field(var=str(RDF.about), value=str(self.about), ftype='text-single')
-            type_stanza = RDFType()
-            type_stanza['type'] = str(RDF.about)
-            about_field.append(type_stanza)
+            container.add_field(var=str(RDF.about), value=str(self.about), ftype='text-single')
 
         if len(self._types):
-            type_field = container.add_field(var=str(RDF.type), value=self._types, ftype='list-multi')
-            type_stanza = RDFType()
-            type_stanza['type'] = str(RDF.type)
-            type_field.append(type_stanza)
+            container.add_field(var=str(RDF.type), value=self._types, ftype='list-multi')
 
         for key, value in self._properties.iteritems():
             property_field = container.add_field(var=str(key), value=value, ftype='list-multi')
