@@ -47,4 +47,3 @@ class RDFSourceStanza(ElementBase):
     namespace = 'rdf:rho'
     plugin_attrib = 'source'
     interfaces = {'name', 'command', }
-    sub_interfaces = interfaces
