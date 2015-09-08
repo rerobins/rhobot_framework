@@ -3,3 +3,4 @@ from rhobot.components.configuration import rho_bot_configuration
 from rhobot.components.roster import rho_bot_roster
 from rhobot.components.storage.client import rho_bot_storage_client
 from rhobot.components.rdf_publish import rho_bot_rdf_publish
+from rhobot.components.representation_manager import rho_bot_representation_manager
