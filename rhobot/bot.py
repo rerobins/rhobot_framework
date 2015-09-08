@@ -59,6 +59,13 @@ class RhoBot(sleekxmpp.ClientXMPP):
         self.send_presence()
         self.get_roster()
 
+    def get_uri(self):
+        """
+        Return the URI for this bot.
+        :return:
+        """
+        return 'xmpp:%s' % self.boundjid.bare
+
 
 if __name__ == '__main__':
 
