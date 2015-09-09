@@ -2,11 +2,11 @@
 Module that will be used to help storage clients connect to a data store.
 """
 import logging
-import enum
 from sleekxmpp.plugins.base import base_plugin
 from rhobot.components.storage.enums import Commands
 from rhobot.components.storage.events import STORAGE_FOUND, STORAGE_LOST
 from rhobot.components.storage.payload import StoragePayload, ResultCollectionPayload
+from rhobot.components.storage.namespace import NEO4J
 from rhobot.components.stanzas.rdf_stanza import RDFType
 from sleekxmpp.plugins.xep_0004 import FormField
 from sleekxmpp.xmlstream import register_stanza_plugin
@@ -26,7 +26,7 @@ class StorageClient(base_plugin):
     """
 
     name = 'rho_bot_storage_client'
-    dependencies = {'xep_0050', }
+    dependencies = {'xep_0050', 'rho_bot_scheduler', }
     description = 'Storage Client Plugin'
 
     def plugin_init(self):
@@ -37,12 +37,8 @@ class StorageClient(base_plugin):
         self.xmpp.add_event_handler('online:store', self._store_found)
         self.xmpp.add_event_handler('offline:store', self._store_left)
 
-    def create_payload(self):
-        """
-        Create a payload object for sending to the storage container.
-        :return:
-        """
-        return StoragePayload()
+        self._scheduler = self.xmpp['rho_bot_scheduler']
+        self._commands = self.xmpp['xep_0050']
 
     def _store_found(self, data):
         """
@@ -80,66 +76,81 @@ class StorageClient(base_plugin):
         :param payload: payload to store in the data store.
         :return: ResultCollectionPayload
         """
-        storage = payload.populate_payload()
+        promise = self._scheduler.promise()
 
-        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CREATE_NODE.value,
-                                                    payload=storage, flow=False)
+        if self.has_store():
+            storage = payload.populate_payload()
+            self._commands.send_command(jid=self._storage_jid, node=Commands.CREATE_NODE.value,
+                                        payload=storage, flow=False,
+                                        callback=self._scheduler.generate_callback_promise(promise))
 
-        return ResultCollectionPayload(result['command']['form'])
+            promise = promise.then(lambda s: ResultCollectionPayload(s['command']['form']))
+        else:
+            promise.rejected(RuntimeError('Storage node is not defined'))
+
+        return promise
 
     def find_nodes(self, payload):
         """
         Basic search for a node.
         :param payload: StoragePayload containing a description of a node that is being searched for.
-        :param params: command parameters.
         :return: ResultCollectionPayload
         """
-        storage = payload.populate_payload()
+        promise = self._scheduler.promise()
 
-        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.FIND_NODE.value,
-                                                    payload=storage, flow=False)
+        if self.has_store():
+            storage = payload.populate_payload()
+            self._commands.send_command(jid=self._storage_jid, node=Commands.FIND_NODE.value,
+                                        payload=storage, flow=False,
+                                        callback=self._scheduler.generate_callback_promise(promise))
 
-        logger.info('result: %s' % result)
+            promise = promise.then(lambda s: ResultCollectionPayload(s['command']['form']))
+        else:
+            promise.rejected(RuntimeError('Storage node is not defined'))
 
-        return ResultCollectionPayload(result['command']['form'])
+        return promise
 
     def update_node(self, payload):
         """
         Update the node described in the payload about, with the values provided.
         :param payload: payload that describes the node and the updated field values
-        :param params: additional flags associated with that command.
         :return: ResultCollectionPayload.
         """
+        promise = self._scheduler.promise()
+
         if not payload.about:
-            raise AttributeError('Missing about field in the storage payload')
+            promise.rejected(AttributeError('Missing about field in the storage payload'))
+        elif self.has_store():
+            storage = payload.populate_payload()
+            self._commands.send_command(jid=self._storage_jid, node=Commands.UPDATE_NODE.value,
+                                        payload=storage, flow=False,
+                                        callback=self._scheduler.generate_callback_promise(promise))
+            promise = promise.then(lambda s: ResultCollectionPayload(s['command']['form']))
+        else:
+            promise.rejected(RuntimeError('Storage node is not defined'))
 
-        storage = payload.populate_payload()
-
-        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.UPDATE_NODE.value,
-                                                    payload=storage, flow=False)
-
-        logger.info('result: %s' % result)
-
-        return ResultCollectionPayload(result['command']['form'])
+        return promise
 
     def get_node(self, payload):
         """
         Retrieve all of the details about a node from the storage provider.
         :param payload: payload containing an about for the object.
-        :param params: additional properties to store in the payload.
         :return: a storage payload with all of the properties.
         """
+        promise = self._scheduler.promise()
+
         if not payload.about:
-            raise AttributeError('Missing about field in the storage payload')
+            promise.rejected(AttributeError('Missing about field in the storage payload'))
+        elif self.has_store():
+            storage = payload.populate_payload()
+            self._commands.send_command(jid=self._storage_jid, node=Commands.GET_NODE.value,
+                                        payload=storage, flow=False,
+                                        callback=self._scheduler.generate_callback_promise(promise))
+            promise = promise.then(lambda s: StoragePayload(s['command']['form']))
+        else:
+            promise.rejected(RuntimeError('Storage node is not defined'))
 
-        storage = payload.populate_payload()
-
-        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.GET_NODE.value,
-                                                    payload=storage, flow=False)
-
-        logger.info('result: %s' % result)
-
-        return StoragePayload(result['command']['form'])
+        return promise
 
     def execute_cypher(self, payload):
         """
@@ -147,14 +158,20 @@ class StorageClient(base_plugin):
         :param payload: containing the query
         :return: ResultCollectionPayload
         """
-        storage = payload.populate_payload()
+        promise = self._scheduler.promise()
 
-        result = self.xmpp['xep_0050'].send_command(jid=self._storage_jid, node=Commands.CYPHER.value,
-                                                    payload=storage, flow=False)
+        if NEO4J.cypher not in payload.properties and str(NEO4J.cypher) not in payload.properties:
+            promise.rejected(RuntimeError('Cypher query is not defined in the payload'))
+        elif self.has_store():
+            storage = payload.populate_payload()
+            self._commands.send_command(jid=self._storage_jid, node=Commands.CYPHER.value,
+                                        payload=storage, flow=False,
+                                        callback=self._scheduler.generate_callback_promise(promise))
+            promise = promise.then(lambda s: ResultCollectionPayload(s['command']['form']))
+        else:
+            promise.rejected(RuntimeError('Storage node is not defined'))
 
-        logger.info('result: %s' % result)
-
-        return ResultCollectionPayload(result['command']['form'])
+        return promise
 
 
 rho_bot_storage_client = StorageClient
