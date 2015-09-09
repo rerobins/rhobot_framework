@@ -1,13 +1,9 @@
 """
 Unit tests for the configuration component.
 """
-import logging; logging.basicConfig(level=logging.DEBUG)
-from sleekxmpp.test import SleekTest
-from rhobot.bot import RhoBot
-from rhobot.components.storage import StoragePayload, ResultCollectionPayload, ResultPayload
-from rdflib.namespace import FOAF
 import time
 
+from sleekxmpp.test import SleekTest
 
 
 class TestRepresentationManager(SleekTest):
@@ -55,7 +51,8 @@ class TestRepresentationManager(SleekTest):
 
     def test_representation_create(self):
 
-        self.storage_client._store_found('storage@example.org/storage')
+        self.storage_client._storage_jid = 'storage@example.org/storage'
+        self.rho_bot_representation_manager._start('asdf')
 
         time.sleep(0.2)
 
@@ -142,28 +139,142 @@ class TestRepresentationManager(SleekTest):
             </iq>
         """)
 
-        time.sleep(1.2)
-        # TODO: Figure out how to test publishing....
-        # self.send("""
-        #     <message type="groupchat" to="conference@conference.example.org">
-        #         <body>Some Body</body>
-        #         <rdf xmlns="urn:rho:rdf" type="create">
-        #             <x xmlns="jabber:x:data" type="form">
-        #                 <reported>
-        #                     <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single" />
-        #                     <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi" />
-        #                 </reported>
-        #                 <item>
-        #                     <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about">
-        #                         <value>http://www.example.org/instance/Bot01</value>
-        #                     </field>
-        #                     <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type">
-        #                         <value>http://xmlns.com/foaf/0.1/Agent</value>
-        #                         <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
-        #                     </field>
-        #                 </item>
-        #             </x>
-        #         </rdf>
-        #     </message>
-        # """, use_values=False)
+        time.sleep(0.2)
 
+        self.send("""
+            <message type="groupchat" to="conference@conference.example.org">
+                <body>Some Data</body>
+                <rdf xmlns="urn:rho:rdf" type="create">
+                    <x xmlns="jabber:x:data" type="form">
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single">
+                            <value>http://www.example.org/instance/Bot01</value>
+                        </field>
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi">
+                            <value>http://xmlns.com/foaf/0.1/Agent</value>
+                            <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
+                        </field>
+                    </x>
+                </rdf>
+            </message>
+        """, use_values=False)
+
+    def test_representation_update(self):
+
+        self.storage_client._storage_jid = 'storage@example.org/storage'
+        self.rho_bot_representation_manager._start('asdf')
+
+        time.sleep(0.2)
+
+        self.send("""
+            <iq type="set" to="storage@example.org/storage" id="1">
+                <command xmlns="http://jabber.org/protocol/commands"
+                    node="find_node"
+                    action="execute">
+                    <x xmlns="jabber:x:data" type="form">
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi">
+                            <value>http://xmlns.com/foaf/0.1/Agent</value>
+                            <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
+                        </field>
+                        <field var="http://www.w3.org/2000/01/rdf-schema#seeAlso" type="list-multi">
+                            <value>xmpp:tester@localhost</value>
+                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                        </field>
+                    </x>
+                </command>
+            </iq>
+        """, use_values=False)
+
+        self.recv("""
+            <iq type="set" to="storage@example.org/storage" id="1">
+                <command xmlns="http://jabber.org/protocol/commands"
+                    node="find_node"
+                    action="completed">
+                    <x xmlns="jabber:x:data" type="form">
+                        <reported>
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single" />
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi" />
+                        </reported>
+                        <item>
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about">
+                                <value>http://www.example.org/instance/Bot01</value>
+                            </field>
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type">
+                                <value>http://xmlns.com/foaf/0.1/Agent</value>
+                                <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
+                            </field>
+                        </item>
+                    </x>
+                </command>
+            </iq>
+        """)
+
+        time.sleep(0.2)
+
+        self.send("""
+            <iq type="set" to="storage@example.org/storage" id="2">
+                <command xmlns="http://jabber.org/protocol/commands"
+                    node="update_node"
+                    action="execute">
+                    <x xmlns="jabber:x:data" type="form">
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single">
+                            <value>http://www.example.org/instance/Bot01</value>
+                        </field>
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi">
+                            <value>http://xmlns.com/foaf/0.1/Agent</value>
+                            <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
+                        </field>
+                        <field var="http://www.w3.org/2000/01/rdf-schema#seeAlso" type="list-multi">
+                            <value>xmpp:tester@localhost</value>
+                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                        </field>
+                        <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
+                            <value>Bot Name</value>
+                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                        </field>
+                    </x>
+                </command>
+            </iq>
+        """, use_values=False)
+
+        self.recv("""
+         <iq type='result' from='storage@example.org/storage' to='tester@localhost/full' id='2'>
+                <command xmlns="http://jabber.org/protocol/commands"
+                    node="update_node"
+                    action="completed">
+                    <x xmlns="jabber:x:data" type="form">
+                        <reported>
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single" />
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi" />
+                        </reported>
+                        <item>
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about">
+                                <value>http://www.example.org/instance/Bot01</value>
+                            </field>
+                            <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type">
+                                <value>http://xmlns.com/foaf/0.1/Agent</value>
+                                <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
+                            </field>
+                        </item>
+                    </x>
+                </command>
+            </iq>
+        """)
+
+        time.sleep(0.2)
+
+        self.send("""
+            <message type="groupchat" to="conference@conference.example.org">
+                <body>Some Data</body>
+                <rdf xmlns="urn:rho:rdf" type="update">
+                    <x xmlns="jabber:x:data" type="form">
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#about" type="text-single">
+                            <value>http://www.example.org/instance/Bot01</value>
+                        </field>
+                        <field var="http://www.w3.org/1999/02/22-rdf-syntax-ns#type" type="list-multi">
+                            <value>http://xmlns.com/foaf/0.1/Agent</value>
+                            <value>http://www.w3.org/2000/01/rdf-schema#Resource</value>
+                        </field>
+                    </x>
+                </rdf>
+            </message>
+        """, use_values=False)

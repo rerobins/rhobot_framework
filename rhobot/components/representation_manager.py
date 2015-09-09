@@ -90,7 +90,7 @@ class RepresentationManager(base_plugin):
 
         publish_payload = StoragePayload()
         publish_payload.about = storage_result.results[0].about
-        publish_payload.add_type(storage_result.results[0].types)
+        publish_payload.add_type(*storage_result.results[0].types)
 
         self._rdf_publish.publish_update(publish_payload)
 
@@ -98,7 +98,7 @@ class RepresentationManager(base_plugin):
 
         publish_payload = StoragePayload()
         publish_payload.about = storage_result.results[0].about
-        publish_payload.add_type(storage_result.results[0].types)
+        publish_payload.add_type(*storage_result.results[0].types)
 
         self._rdf_publish.publish_create(publish_payload)
 
