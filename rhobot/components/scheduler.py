@@ -224,12 +224,15 @@ class Scheduler(base_plugin):
         """
         Defer the method execution till a later time, but return a promise that will be used to notify listeners of the
         results.
-        :param method:
-        :param args:
-        :param kwargs:
-        :return:
+        :param method: method to execute.
+        :param args: args associated with the method to execute.
+        :param kwargs: kwargs associated with the method to execute.
+        :return: promise associated with the deferred.
         """
-        deferred = Deferred(method, self)
+        def execution_method():
+            return method(*args, **kwargs)
+
+        deferred = Deferred(execution_method, self)
 
         self.schedule_task(deferred, delay=0.0)
 
