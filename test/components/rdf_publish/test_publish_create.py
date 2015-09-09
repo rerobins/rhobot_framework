@@ -10,6 +10,7 @@ from rhobot.components.rdf_publish import rho_bot_rdf_publish, RDFStanzaType
 from rhobot.components.storage import StoragePayload
 from rdflib.namespace import FOAF, RDF, RDFS
 from rhobot.namespace import RHO
+import time
 
 
 class PublishCreateTestCase(unittest.TestCase):
@@ -29,6 +30,7 @@ class PublishCreateTestCase(unittest.TestCase):
 
         self.rdf_publisher = rho_bot_rdf_publish(self.xmpp, None)
         self.rdf_publisher.plugin_init()
+        self.rdf_publisher.post_init()
         self.xmpp = mock.MagicMock
 
         register_stanza_plugin(FormField, FieldOption, iterable=True)
@@ -91,7 +93,5 @@ class PublishCreateTestCase(unittest.TestCase):
         self.rdf_publisher.add_create_handler(create_handler)
 
         self.rdf_publisher._receive_message(message)
-        self.assertEqual(1, create_handler.call_count)
-        create_handler_args, create_handler_kwargs = create_handler.call_args
-
-        self.assertIs(message['rdf'], create_handler_args[0])
+        self.assertEqual(self.scheduler_plugin.defer.call_args[0][0], create_handler)
+        self.assertEqual(str(self.scheduler_plugin.defer.call_args[0][1]), str(message['rdf']))

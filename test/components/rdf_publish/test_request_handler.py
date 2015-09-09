@@ -29,6 +29,7 @@ class ResponseTestCase(unittest.TestCase):
 
         self.rdf_publisher = rho_bot_rdf_publish(self.xmpp, None)
         self.rdf_publisher.plugin_init()
+        self.rdf_publisher.post_init()
         self.xmpp = mock.MagicMock
 
         register_stanza_plugin(FormField, FieldOption, iterable=True)

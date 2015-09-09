@@ -57,6 +57,14 @@ class RDFPublish(base_plugin):
         self._update_handlers = []
         self._search_handlers = []
 
+    def post_init(self):
+        """
+        Accessors for the plugins that are required for this bot.
+        :return:
+        """
+        self._scheduler = self.xmpp['rho_bot_scheduler']
+        self._roster = self.xmpp['rho_bot_roster']
+
     def _channel_joined(self, event):
         """
         When the channel is joined, add a message listener for all of the incoming requests and the responses that are
@@ -65,7 +73,7 @@ class RDFPublish(base_plugin):
         :return: None
         """
         logger.info('Joined the registration channel')
-        self.xmpp['rho_bot_roster'].add_message_received_listener(self._receive_message)
+        self._roster.add_message_received_listener(self._receive_message)
 
     def send_out_request(self, payload, timeout=10.0, allow_multiple=False):
         """
@@ -233,11 +241,16 @@ class RDFPublish(base_plugin):
         :param rdf_payload:
         :return:
         """
+        def send_response(payload):
+            """
+            Send out the response for the promise.
+            """
+            if payload:
+                self._roster.send_message(payload=payload, thread_id=message.get('thread', None))
+
         for handler in self._request_handlers:
-            response = handler(rdf_payload)
-            if response:
-                self._send_message(mtype=RDFStanzaType.RESPONSE, payload=response,
-                                   thread_id=message.get('thread', None))
+            response_promise = self._scheduler.defer(handler, rdf_payload)
+            response_promise.then(send_response)
 
     def _response(self, message, rdf_payload):
         """
@@ -262,7 +275,7 @@ class RDFPublish(base_plugin):
         :return:
         """
         for handler in self._create_handlers:
-            handler(rdf_payload)
+            self._scheduler.defer(handler, rdf_payload)
 
     def _update(self, message, rdf_payload):
         """
@@ -272,7 +285,7 @@ class RDFPublish(base_plugin):
         :return:
         """
         for handler in self._update_handlers:
-            handler(rdf_payload)
+            self._scheduler.defer(handler, rdf_payload)
 
     def _search_request(self, message, rdf_payload):
         """
@@ -281,11 +294,16 @@ class RDFPublish(base_plugin):
         :param rdf_payload:
         :return:
         """
+        def send_response(payload):
+            """
+            Send out the response for the promise.
+            """
+            if payload:
+                self._roster.send_message(payload=payload, thread_id=message.get('thread', None))
+
         for handler in self._search_handlers:
-            response, source_command_node = handler(rdf_payload)
-            if response:
-                self._send_message(mtype=RDFStanzaType.RESPONSE, payload=response,
-                                   thread_id=message.get('thread', None), source_command_node=source_command_node)
+            response_promise = self._scheduler.defer(handler, rdf_payload)
+            response_promise.then(send_response)
 
     def _search_response(self, message, rdf_payload):
         """
