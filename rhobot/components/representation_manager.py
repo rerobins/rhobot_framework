@@ -29,39 +29,78 @@ class RepresentationManager(base_plugin):
         :return:
         """
         self.xmpp.add_event_handler(STORAGE_FOUND, self._start)
-        self._node_id = None
+
+    def post_init(self):
+        self._storage_client = self.xmpp['rho_bot_storage_client']
+        self._rdf_publish = self.xmpp['rho_bot_rdf_publish']
 
     def _start(self, event):
-        create = True
         payload = StoragePayload()
         payload.add_type(FOAF.Agent, RDFS.Resource)
         payload.add_property(RDFS.seeAlso, self.xmpp.get_uri())
 
-        result = self.xmpp['rho_bot_storage_client'].find_nodes(payload)
+        promise = self._storage_client.find_nodes(payload)
 
+        node_found_promise = promise.then(self._node_found)
+
+        node_found_promise.then(self._update_node, self._create_node)
+
+    def _node_found(self, result):
+        """
+        Determine if the node that represents this bot is found on the server.
+        :param result: result from find nodes command.
+        :return:
+        """
         if result.results:
-            self._node_id = result.results[0].about
-            create = False
+            node_id = result.results[0].about
+            return node_id
+
+        raise RuntimeError('Not Found')
+
+    def _update_node(self, node_identifier):
+        """
+        Update the node that was found, and then publish the update.
+        :param node_identifier: identifier of the node to update.
+        :return:
+        """
+        payload = self._create_payload()
+        payload.about = node_identifier
+
+        promise = self._storage_client.update_node(payload).then(self._publish_update)
+
+        return promise
+
+    def _create_node(self, error_message):
+        payload = self._create_payload()
+
+        promise = self._storage_client.create_node(payload).then(self._publish_create)
+
+        return promise
+
+    def _create_payload(self):
 
         update_payload = StoragePayload()
         update_payload.add_type(FOAF.Agent, RDFS.Resource)
         update_payload.add_property(RDFS.seeAlso, self.xmpp.get_uri())
         update_payload.add_property(FOAF.name, self.xmpp.name)
 
-        if self._node_id:
-            update_payload.about = self._node_id
-            storage_result = self.xmpp['rho_bot_storage_client'].update_node(update_payload)
-        else:
-            storage_result = self.xmpp['rho_bot_storage_client'].create_node(update_payload)
+        return update_payload
+
+    def _publish_update(self, storage_result):
 
         publish_payload = StoragePayload()
         publish_payload.about = storage_result.results[0].about
         publish_payload.add_type(storage_result.results[0].types)
 
-        if create:
-            self.xmpp['rho_bot_rdf_publish'].publish_create(publish_payload)
-        else:
-            self.xmpp['rho_bot_rdf_publish'].publish_update(publish_payload)
+        self._rdf_publish.publish_update(publish_payload)
+
+    def _publish_create(self, storage_result):
+
+        publish_payload = StoragePayload()
+        publish_payload.about = storage_result.results[0].about
+        publish_payload.add_type(storage_result.results[0].types)
+
+        self._rdf_publish.publish_create(publish_payload)
 
 
 rho_bot_representation_manager = RepresentationManager
