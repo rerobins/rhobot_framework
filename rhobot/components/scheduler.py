@@ -255,6 +255,21 @@ class Scheduler(base_plugin):
 
         return method
 
+    def generate_promise_handler(self, method, *args, **kwargs):
+        """
+        This will generate a promise method that can take multiple arguments for execution.  It makes the assumption that
+        the method that is being wrapped will take the result of the called promise as the first argument.
+        :param method: callable to wrap
+        :param args: additional args
+        :param kwargs: additional kwargs
+        :return: wrapped method.
+        """
+        def new_method(result):
+            return method(result, *args, **kwargs)
+
+        return new_method
+
+
 
 # Define the plugin that will be used to access this plugin.
 rho_bot_scheduler = Scheduler
