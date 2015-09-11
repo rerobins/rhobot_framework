@@ -10,10 +10,10 @@ class BaseCommand(base_plugin):
 
     default_identifier = 'base_command_identifier'
     default_name = 'Base Command Name'
-    default_dependencies = {'xep_0050', }
+    default_dependencies = {'xep_0050', 'rho_bot_roster', }
 
-    def __init__(self, xmpp, config):
-        base_plugin.__init__(self, xmpp, config=config)
+    def __init__(self, *args, **kwargs):
+        super(BaseCommand, self).__init__(*args, **kwargs)
         self.initialize_command()
 
     def initialize_command(self):
@@ -21,7 +21,7 @@ class BaseCommand(base_plugin):
         Initialize the command.
         :return:
         """
-        logger.info('Initialize Command')
+        logger.debug('Initialize Command')
         self._initialize_command(self.default_identifier, self.default_name, {})
 
     def _initialize_command(self, identifier, name, additional_dependencies=None):
@@ -32,7 +32,7 @@ class BaseCommand(base_plugin):
         :param additional_dependencies: additional dependencies needed by this command.
         :return:
         """
-        logger.info('_Initialize Command')
+        logger.debug('_Initialize Command')
         self.name = identifier or self.default_identifier
         self.description = name or self.default_name
 
@@ -45,6 +45,11 @@ class BaseCommand(base_plugin):
         :return:
         """
         self.xmpp.add_event_handler('session_start', self._start)
+
+    def post_init(self):
+        super(BaseCommand, self).post_init()
+        self._forms = self.xmpp['xep_0004']
+        self._roster = self.xmpp['rho_bot_roster']
 
     def _start(self, event):
         """
@@ -72,3 +77,12 @@ class BaseCommand(base_plugin):
         :return:
         """
         raise NotImplementedError()
+
+    def get_command_uri(self):
+        """
+        Return the URI of this command so that it can be sent to other clients for lookups.
+        :return:
+        """
+        jid = self._roster.get_jid()
+
+        return "xmpp:%s?command;node=%s" % (jid, self.name)

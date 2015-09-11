@@ -19,7 +19,7 @@ from sleekxmpp.plugins.xep_0004 import Form, FormField
 from sleekxmpp import Message
 from rhobot.components.roster import RosterComponent
 from rhobot.components.scheduler import Promise
-from rhobot.components.storage import ResultCollectionPayload
+from rhobot.components.storage import ResultCollectionPayload, StoragePayload
 from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDFStanzaType, RDFType
 import logging
 import uuid
@@ -139,6 +139,23 @@ class RDFPublish(base_plugin):
         """
         self._send_message(mtype=RDFStanzaType.UPDATE, payload=payload)
 
+    def publish_all_results(self, result_collection, created=True):
+        """
+        Publish all of the results in the collection to the correct type.
+        :param result_collection: collection to publish the results of.
+        :param create: should the results be published as a create.  If this is false, the results will be published
+        as an update.
+        :return:
+        """
+        for res in result_collection.results:
+            publish_payload = StoragePayload()
+            publish_payload.about = res.about
+            publish_payload.add_type(*res.types)
+            if created:
+                self.publish_create(publish_payload)
+            else:
+                self.publish_update(publish_payload)
+
     def add_request_handler(self, callback):
         """
         Add a message handler for all of the rdf requests.
@@ -171,7 +188,8 @@ class RDFPublish(base_plugin):
         """
         self._search_handlers.append(callback)
 
-    def _populate_rdf(self, mtype='ignore', payload=None, source_command_node=None):
+    @staticmethod
+    def create_rdf(mtype='ignore', payload=None, source_name=None, source_command=None):
 
         result = RDFStanza()
 
@@ -183,16 +201,15 @@ class RDFPublish(base_plugin):
         if payload:
             result.append(payload.populate_payload())
 
-        if source_command_node:
+        if source_name and source_command:
             source_stanza = RDFSourceStanza()
-            source_stanza['name'] = self.xmpp.name
-            source_stanza['command'] = 'xmpp:%s?command;node=%s' % (self.xmpp['rho_bot_roster'].get_jid(),
-                                                                    source_command_node)
+            source_stanza['name'] = source_name
+            source_stanza['command'] = source_command
             result.append(source_stanza)
 
         return result
 
-    def _send_message(self, mtype='ignore', payload=None, thread_id=None, source_command_node=None):
+    def _send_message(self, mtype='ignore', payload=None, thread_id=None):
         """
         Create and RDF message and populate it with the payload for transmission.
         :param mtype:
@@ -200,7 +217,7 @@ class RDFPublish(base_plugin):
         :param thread_id:
         :return:
         """
-        rdf_stanza = self._populate_rdf(mtype=mtype, payload=payload, source_command_node=source_command_node)
+        rdf_stanza = self.create_rdf(mtype=mtype, payload=payload)
 
         self.xmpp['rho_bot_roster'].send_message(payload=rdf_stanza, thread_id=thread_id)
 

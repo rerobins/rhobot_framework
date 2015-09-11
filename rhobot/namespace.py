@@ -13,3 +13,6 @@ WGS_84 = Namespace('http://www.w3.org/2003/01/geo/wgs84_pos#')
 
 #: Namespace for working with location data types
 LOCATION = Namespace('http://www.w3.org/ns/locn#')
+
+#: Namespace for working with graph data types.
+GRAPH = ClosedNamespace(uri='urn:graph:', terms=['degree'])

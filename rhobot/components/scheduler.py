@@ -50,7 +50,7 @@ class Deferred:
         return self._promise
 
     def __call__(self, *args, **kwargs):
-        logger.debug('Executing call method')
+        logger.debug('Executing call method: %s' % self._method_call)
 
         try:
             result = self._method_call()

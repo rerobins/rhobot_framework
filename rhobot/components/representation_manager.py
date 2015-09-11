@@ -29,10 +29,15 @@ class RepresentationManager(base_plugin):
         :return:
         """
         self.xmpp.add_event_handler(STORAGE_FOUND, self._start)
+        self._node_id = None
 
     def post_init(self):
         self._storage_client = self.xmpp['rho_bot_storage_client']
         self._rdf_publish = self.xmpp['rho_bot_rdf_publish']
+
+    @property
+    def representation_uri(self):
+        return self._node_id
 
     def _start(self, event):
         payload = StoragePayload()
@@ -92,6 +97,8 @@ class RepresentationManager(base_plugin):
         publish_payload.about = storage_result.results[0].about
         publish_payload.add_type(*storage_result.results[0].types)
 
+        self._node_id = publish_payload.about
+
         self._rdf_publish.publish_update(publish_payload)
 
     def _publish_create(self, storage_result):
@@ -99,6 +106,8 @@ class RepresentationManager(base_plugin):
         publish_payload = StoragePayload()
         publish_payload.about = storage_result.results[0].about
         publish_payload.add_type(*storage_result.results[0].types)
+
+        self._node_id = publish_payload.about
 
         self._rdf_publish.publish_create(publish_payload)
 
