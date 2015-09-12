@@ -9,5 +9,5 @@ pbr==1.6.0
 pyparsing==2.0.3
 rdflib==4.2.0
 six==1.9.0
--e git+https://github.com/rerobins/SleekXMPP.git@4a24f58be26f8d5040dab2ddc3428bd989296fdb#egg=sleekxmpp-origin/develop
+-e git+https://github.com/rerobins/SleekXMPP.git@4a24f58be26f8d5040dab2ddc3428bd989296fdb#egg=sleekxmpp-1.4.0
 wsgiref==0.1.2
