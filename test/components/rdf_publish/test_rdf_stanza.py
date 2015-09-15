@@ -11,7 +11,6 @@ from rhobot.components.rdf_publish import RDFStanza, RDFStanzaType, RDFSourceSta
 from rhobot.components.storage import StoragePayload
 from rhobot.namespace import RHO
 from rdflib.namespace import FOAF, RDF, RDFS
-from rhobot.stanza_modification import patch_form_fields
 
 
 class RDFStanzaTestCase(SleekTest):
@@ -23,7 +22,6 @@ class RDFStanzaTestCase(SleekTest):
         register_stanza_plugin(xep_0004.FormField, xep_0004.FieldOption)
         register_stanza_plugin(RDFStanza, RDFSourceStanza)
         register_stanza_plugin(Message, xep_0004.Form)
-        patch_form_fields()
 
     def test_creation(self):
         m = self.Message()

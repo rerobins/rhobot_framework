@@ -23,7 +23,6 @@ from rhobot.components.storage import ResultCollectionPayload, StoragePayload
 from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDFStanzaType
 import logging
 import uuid
-from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
 
 logger = logging.getLogger(__name__)
 

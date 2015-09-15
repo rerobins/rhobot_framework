@@ -5,8 +5,6 @@ import json
 import sleekxmpp
 import os
 from rhobot import configuration
-from rhobot.stanza_modification import patch_form_fields
-patch_form_fields()
 
 if os.path.exists('logging.json'):
     with open('logging.json', 'rt') as f:

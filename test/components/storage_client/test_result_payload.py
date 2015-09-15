@@ -10,7 +10,6 @@ from rhobot.components.storage.enums import FindResults
 from sleekxmpp.plugins.xep_0004 import FormField
 from sleekxmpp.plugins.xep_0122 import FormValidation
 from sleekxmpp.xmlstream import register_stanza_plugin
-from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
 
 
 class TestResultPayload(unittest.TestCase):

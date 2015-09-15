@@ -7,9 +7,6 @@ from sleekxmpp.plugins.base import base_plugin
 from rhobot.components.storage.events import STORAGE_FOUND
 from rhobot.components.storage import StoragePayload
 from rdflib.namespace import RDFS, FOAF
-from rhobot.stanza_modification import patch_form_fields;
-
-patch_form_fields()
 
 logger = logging.getLogger(__name__)
 
