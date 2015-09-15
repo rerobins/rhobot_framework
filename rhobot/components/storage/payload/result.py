@@ -10,6 +10,7 @@ from rhobot.components.storage.enums import Flag
 
 logger = logging.getLogger(__name__)
 
+
 class _ColumnKey:
 
     def __init__(self, key, data_type):

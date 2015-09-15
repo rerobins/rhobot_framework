@@ -9,6 +9,7 @@ import json
 
 logger = logging.getLogger(__name__)
 
+
 class ImportConfiguration(BaseCommand):
 
     def initialize_command(self):

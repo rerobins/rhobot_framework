@@ -6,6 +6,7 @@ from sleekxmpp.plugins.xep_0004 import Form
 from sleekxmpp.plugins.xep_0122 import FormValidation
 from rhobot.components.storage.enums import Flag
 
+
 class StoragePayload:
     """
     Payload object that will contain the workspace for the data to be stored or looked up in the database.

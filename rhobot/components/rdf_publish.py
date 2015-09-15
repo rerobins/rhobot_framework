@@ -28,7 +28,6 @@ from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDF
 logger = logging.getLogger(__name__)
 
 
-
 class RDFPublish(base_plugin):
     """
     Service that will send out requests and farm out the incoming messages to the appropriate handlers.

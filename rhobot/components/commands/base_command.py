@@ -3,6 +3,7 @@ from sleekxmpp.plugins.base import base_plugin
 
 logger = logging.getLogger(__name__)
 
+
 class BaseCommand(base_plugin):
     """
     Abstract implementation of a base command.
