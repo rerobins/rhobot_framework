@@ -20,7 +20,7 @@ from sleekxmpp import Message
 from rhobot.components.roster import RosterComponent
 from rhobot.components.scheduler import Promise
 from rhobot.components.storage import ResultCollectionPayload, StoragePayload
-from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDFStanzaType, RDFType
+from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDFStanzaType
 import logging
 import uuid
 from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
@@ -46,8 +46,6 @@ class RDFPublish(base_plugin):
         register_stanza_plugin(Message, RDFStanza)
         register_stanza_plugin(RDFStanza, Form)
         register_stanza_plugin(RDFStanza, RDFSourceStanza)
-        register_stanza_plugin(FormField, RDFSourceStanza, iterable=True)
-        register_stanza_plugin(FormField, RDFType)
 
         self.xmpp.add_event_handler(RosterComponent.CHANNEL_JOINED, self._channel_joined)
 

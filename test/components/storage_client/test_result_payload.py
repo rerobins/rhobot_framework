@@ -7,8 +7,8 @@ from rhobot.namespace import RHO
 from sleekxmpp.plugins.xep_0004.stanza.form import Form
 from rhobot.components.storage import ResultCollectionPayload, ResultPayload
 from rhobot.components.storage.enums import FindResults
-from rhobot.components.stanzas.rdf_stanza import RDFType
 from sleekxmpp.plugins.xep_0004 import FormField
+from sleekxmpp.plugins.xep_0122 import FormValidation
 from sleekxmpp.xmlstream import register_stanza_plugin
 from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
 
@@ -16,7 +16,7 @@ from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
 class TestResultPayload(unittest.TestCase):
 
     def setUp(self):
-        register_stanza_plugin(FormField, RDFType)
+        register_stanza_plugin(FormField, FormValidation)
 
     def test_parsing(self):
         form = Form()
@@ -88,8 +88,6 @@ class TestResultPayload(unittest.TestCase):
         self.assertEqual(init_result.about, urn)
         self.assertEqual(init_result.types, types)
         self.assertEqual(FindResults.CREATED.fetch_from(init_result.flags), FindResults.CREATED.fetch_from(flags))
-
-
 
     def test_enum_flags(self):
 

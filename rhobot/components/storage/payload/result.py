@@ -1,11 +1,12 @@
 """
 Payload for passing around results of commands.  In most cases this is a list of the nodes that were interacted with.
 """
-from sleekxmpp.plugins.xep_0004 import Form, FormField
-from rdflib.namespace import RDF, RDFS
-from rhobot.components.stanzas.rdf_stanza import RDFType
-from rhobot.components.storage.enums import Flag
 import logging
+
+from sleekxmpp.plugins.xep_0004 import Form
+from sleekxmpp.plugins.xep_0122 import FormValidation
+from rdflib.namespace import RDF
+from rhobot.components.storage.enums import Flag
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ class ResultPayload:
         """
         self._flags[key] = value
 
-    def add_column(self, key, value, data_type=RDFS.Literal):
+    def add_column(self, key, value, data_type='xs:string'):
         """
         Add a collection of columns to the key.
         :param key:
@@ -103,7 +104,7 @@ class ResultPayload:
 
         column_values += value
 
-    def get_column(self, key, data_type=RDFS.Literal):
+    def get_column(self, key, data_type='xs:string'):
         column_key = _ColumnKey(key, data_type)
 
         return self._columns.get(column_key, [])
@@ -179,8 +180,8 @@ class ResultCollectionPayload:
                     types = value
                 else:
                     reported_item = reported_values[key]
-                    if reported_item['rdftype']['type']:
-                        columns[_ColumnKey(key, reported_item['rdftype']['type'])] = value
+                    if reported_item['validate']['datatype']:
+                        columns[_ColumnKey(key, reported_item['validate']['datatype'])] = value
                     else:
                         flags[Flag(*(key, reported_item['type'], None))] = value
 
@@ -214,9 +215,9 @@ class ResultCollectionPayload:
 
         for column_value in additional_columns:
             reported = self._container.add_reported(var=column_value.key, ftype='list-multi')
-            rdf_type = RDFType()
-            rdf_type['type'] = column_value.data_type
-            reported.append(rdf_type)
+            validation = FormValidation()
+            validation['datatype'] = column_value.data_type
+            reported.append(validation)
 
         for result in self._results:
             parameters = {

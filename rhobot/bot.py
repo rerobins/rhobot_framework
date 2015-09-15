@@ -30,6 +30,7 @@ class RhoBot(sleekxmpp.ClientXMPP):
         self.name = configuration.get_configuration().get(configuration.BOT_SECTION_NAME,
                                                           configuration.NAME_KEY)
 
+        self.register_plugin('xep_0122')  # XMPP Data form validation
         self.register_plugin('xep_0199')  # XMPP Ping
         self.register_plugin('rho_bot_scheduler', module='rhobot.components')
         self.register_plugin('rho_bot_configuration', module='rhobot.components')

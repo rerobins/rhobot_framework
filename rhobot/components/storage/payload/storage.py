@@ -1,9 +1,9 @@
 """
 Storage payload definition.  Responsible for providing basic payloads for passing node data around.
 """
-from rdflib.namespace import RDF, RDFS
+from rdflib.namespace import RDF
 from sleekxmpp.plugins.xep_0004 import Form
-from rhobot.components.stanzas.rdf_stanza import RDFType
+from sleekxmpp.plugins.xep_0122 import FormValidation
 from rhobot.components.storage.enums import Flag
 
 class StoragePayload:
@@ -97,14 +97,14 @@ class StoragePayload:
 
         for key, value in self._properties.iteritems():
             property_field = container.add_field(var=str(key), value=value, ftype='list-multi')
-            type_stanza = RDFType()
-            type_stanza['type'] = str(RDFS.Literal)
+            type_stanza = FormValidation()
+            type_stanza['datatype'] = 'xs:string'
             property_field.append(type_stanza)
 
         for key, value in self._references.iteritems():
             reference_field = container.add_field(var=str(key), value=value, ftype='list-multi')
-            type_stanza = RDFType()
-            type_stanza['type'] = str(RDFS.Resource)
+            type_stanza = FormValidation()
+            type_stanza['datatype'] = 'xs:anyURI'
             reference_field.append(type_stanza)
 
         for key, value in self._flags.iteritems():
@@ -122,16 +122,16 @@ class StoragePayload:
         self._references = {}
 
         for key, value in container.field.iteritems():
-            rdf_type = value['rdftype']['type']
+            rdf_type = value['validate']['datatype']
             field_type = value['type']
 
             if key == str(RDF.about):
                 self.about = value.get_value()
             elif key == str(RDF.type):
                 self._types = value.get_value()
-            elif rdf_type == str(RDFS.Literal):
+            elif rdf_type == 'xs:string':
                 self._properties[key] = value.get_value()
-            elif rdf_type == str(RDFS.Resource):
+            elif rdf_type == 'xs:anyURI':
                 self._references[key] = value.get_value()
             else:
                 key = Flag(*(key, field_type, None))

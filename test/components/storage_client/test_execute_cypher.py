@@ -49,12 +49,12 @@ class ExecuteCypherTestCase(SleekTest):
                         <x xmlns="jabber:x:data" type="form">
                             <field var="http://www.neo4j.com/terms/#cypher" type="list-multi">
                                 <value>Match (n) RETURN n LIMIT 25</value>
-                                <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                                <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                             </field>
                         </x>
                     </command>
                 </iq>
-            """, use_values=False)
+            """)
 
         self.assertNotIn('result', self.session)
 

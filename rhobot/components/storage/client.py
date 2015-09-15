@@ -7,7 +7,6 @@ from rhobot.components.storage.enums import Commands
 from rhobot.components.storage.events import STORAGE_FOUND, STORAGE_LOST
 from rhobot.components.storage.payload import StoragePayload, ResultCollectionPayload
 from rhobot.components.storage.namespace import NEO4J
-from rhobot.components.stanzas.rdf_stanza import RDFType
 from sleekxmpp.plugins.xep_0004 import FormField
 from sleekxmpp.xmlstream import register_stanza_plugin
 
@@ -31,7 +30,6 @@ class StorageClient(base_plugin):
 
     def plugin_init(self):
         self._storage_jid = None
-        register_stanza_plugin(FormField, RDFType)
 
     def post_init(self):
         self.xmpp.add_event_handler('online:store', self._store_found)

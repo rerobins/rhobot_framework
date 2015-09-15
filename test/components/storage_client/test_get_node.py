@@ -56,12 +56,12 @@ class GetNodeTestCase(SleekTest):
                             </field>
                             <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
                                 <value>Robert</value>
-                                <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                                <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                             </field>
                         </x>
                     </command>
                 </iq>
-            """, use_values=False)
+            """)
 
         self.assertNotIn('result', self.session)
 

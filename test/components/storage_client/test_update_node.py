@@ -11,7 +11,7 @@ class UpdateNodeTestCase(SleekTest):
 
     def setUp(self):
         self.session = {}
-        self.stream_start(plugins=['xep_0050'])
+        self.stream_start(plugins=['xep_0050', 'xep_0122'])
         self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
         self.xmpp.register_plugin('rho_bot_storage_client', module='rhobot.components')
         self.scheduler = self.xmpp['rho_bot_scheduler']
@@ -56,12 +56,12 @@ class UpdateNodeTestCase(SleekTest):
                             </field>
                             <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
                                 <value>Robert</value>
-                                <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                                <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                             </field>
                         </x>
                     </command>
                 </iq>
-            """, use_values=False)
+            """)
 
         self.assertNotIn('result', self.session)
 

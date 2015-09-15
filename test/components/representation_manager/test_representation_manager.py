@@ -68,12 +68,12 @@ class TestRepresentationManager(SleekTest):
                         </field>
                         <field var="http://www.w3.org/2000/01/rdf-schema#seeAlso" type="list-multi">
                             <value>xmpp:tester@localhost</value>
-                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                            <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                         </field>
                     </x>
                 </command>
             </iq>
-        """, use_values=False)
+        """)
 
         self.recv("""
             <iq type="set" to="storage@example.org/storage" id="1">
@@ -104,16 +104,16 @@ class TestRepresentationManager(SleekTest):
                         </field>
                         <field var="http://www.w3.org/2000/01/rdf-schema#seeAlso" type="list-multi">
                             <value>xmpp:tester@localhost</value>
-                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                            <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                         </field>
                         <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
                             <value>Bot Name</value>
-                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                            <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                         </field>
                     </x>
                 </command>
             </iq>
-        """, use_values=False)
+        """)
 
         self.recv("""
          <iq type='result' from='storage@example.org/storage' to='tester@localhost/full' id='2'>
@@ -156,7 +156,7 @@ class TestRepresentationManager(SleekTest):
                     </x>
                 </rdf>
             </message>
-        """, use_values=False)
+        """)
 
     def test_representation_update(self):
 
@@ -177,12 +177,12 @@ class TestRepresentationManager(SleekTest):
                         </field>
                         <field var="http://www.w3.org/2000/01/rdf-schema#seeAlso" type="list-multi">
                             <value>xmpp:tester@localhost</value>
-                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                            <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                         </field>
                     </x>
                 </command>
             </iq>
-        """, use_values=False)
+        """)
 
         self.recv("""
             <iq type="set" to="storage@example.org/storage" id="1">
@@ -225,16 +225,16 @@ class TestRepresentationManager(SleekTest):
                         </field>
                         <field var="http://www.w3.org/2000/01/rdf-schema#seeAlso" type="list-multi">
                             <value>xmpp:tester@localhost</value>
-                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                            <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                         </field>
                         <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
                             <value>Bot Name</value>
-                            <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal" />
+                            <validate xmlns="http://jabber.org/protocol/xdata-validate" datatype="xs:string" />
                         </field>
                     </x>
                 </command>
             </iq>
-        """, use_values=False)
+        """)
 
         self.recv("""
          <iq type='result' from='storage@example.org/storage' to='tester@localhost/full' id='2'>
@@ -277,4 +277,4 @@ class TestRepresentationManager(SleekTest):
                     </x>
                 </rdf>
             </message>
-        """, use_values=False)
+        """)

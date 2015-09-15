@@ -4,7 +4,7 @@ from sleekxmpp.plugins.xep_0004.stanza.form import Form
 from rhobot.components.storage import StoragePayload
 from rhobot.components.storage.enums import FindFlags
 from rhobot.stanza_modification import patch_form_fields; patch_form_fields()
-from rhobot.components.stanzas.rdf_stanza import RDFType
+from sleekxmpp.plugins.xep_0122 import FormValidation
 from sleekxmpp.plugins.xep_0004 import FormField
 from sleekxmpp.xmlstream import register_stanza_plugin
 
@@ -12,7 +12,7 @@ from sleekxmpp.xmlstream import register_stanza_plugin
 class TestStoragePayload(unittest.TestCase):
 
     def setUp(self):
-        register_stanza_plugin(FormField, RDFType)
+        register_stanza_plugin(FormField, FormValidation)
 
     def test_populate(self):
 

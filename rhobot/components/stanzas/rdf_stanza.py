@@ -13,15 +13,6 @@ class RDFStanzaType(Enum):
     SEARCH_REQUEST = 'search'
     SEARCH_RESPONSE = 'search_response'
 
-class RDFType(ElementBase):
-    """
-    Stanza that will allow for typing information to be placed in the form field.
-    """
-    name = 'rdftype'
-    namespace = XMLNS
-    plugin_attrib = 'rdftype'
-    interfaces = {'type', }
-
 
 class RDFStanza(ElementBase):
     """
