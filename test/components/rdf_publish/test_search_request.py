@@ -193,16 +193,15 @@ class SearchRequestTestCase(unittest.TestCase):
         response_payload = ResultCollectionPayload()
         response_payload.append(ResultPayload(about=publish_urn, types=[FOAF.Person, RHO.Owner]))
 
-        search_command_node = 'search_command'
+        search_command_node = 'xmpp:rhobot@conference.local/bot?command;node=search_command'
 
-        self.rdf_publisher._send_message(RDFStanzaType.RESPONSE, response_payload, thread_id,
-                                         source_command_node=search_command_node)
-        response_args, response_kwargs = self.roster_plugin.send_message.call_args
+        rdf_payload = self.rdf_publisher.create_rdf(mtype=RDFStanzaType.SEARCH_RESPONSE,
+                                                    payload=response_payload, source_name='Search Command',
+                                                    source_command=search_command_node)
 
-        payload = response_kwargs['payload']
         response_message = Message()
-        response_message.append(payload)
-        response_message['thread'] = response_kwargs['thread_id']
+        response_message.append(rdf_payload)
+        response_message['thread'] = thread_id
 
         with mock.patch.object(promise, attribute='resolved') as mock_promise_resolve:
             self.rdf_publisher._receive_message(response_message)
@@ -228,7 +227,6 @@ class SearchRequestTestCase(unittest.TestCase):
 
             self.assertEqual(1, len(sources))
 
-            self.assertEqual('RhoBot Name', sources[0][0])
-            self.assertEqual('xmpp:rhobot@conference.local/bot?command;node=%s' % search_command_node,
-                             sources[0][1])
+            self.assertEqual('Search Command', sources[0][0])
+            self.assertEqual('xmpp:rhobot@conference.local/bot?command;node=search_command', sources[0][1])
 
