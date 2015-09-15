@@ -3,7 +3,7 @@ Unit tests for the result payload.
 """
 import unittest
 from rdflib.namespace import RDF, RDFS, FOAF
-from rhobot.namespace import RHO
+from rhobot.namespace import RHO, GRAPH
 from sleekxmpp.plugins.xep_0004.stanza.form import Form
 from rhobot.components.storage import ResultCollectionPayload, ResultPayload
 from rhobot.components.storage.enums import FindResults
@@ -109,3 +109,29 @@ class TestResultPayload(unittest.TestCase):
         self.assertEqual(init_result.types, types)
 
         self.assertEqual(FindResults.CREATED.fetch_from(init_result.flags), False)
+
+    def test_columns(self):
+        types = [str(FOAF.Person), str(RHO.Owner)]
+        urn = 'urn.instance.owner'
+        degree = 5
+
+        payload = ResultCollectionPayload()
+        item = ResultPayload(about=urn, types=types)
+
+        item.add_column(GRAPH.degree, degree)
+
+        payload.append(item)
+
+        result = payload.populate_payload()
+
+        second_payload = ResultCollectionPayload(result)
+
+        self.assertEqual(len(second_payload.results), len(payload.results))
+
+        result_payload = second_payload.results[0]
+
+        self.assertEqual(result_payload.about, urn)
+        self.assertEqual(result_payload.types, types)
+
+        column_value = result_payload.get_column(GRAPH.degree)
+        self.assertEqual(int(column_value[0]), degree)
