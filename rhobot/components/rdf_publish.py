@@ -13,16 +13,17 @@ promise will be resolved immediately after the first response is received.
 Promises selecting all responses will have to wait for the timeout to occur before resolving the promise.
 """
 
+import logging
+import uuid
+
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.xmlstream import register_stanza_plugin
-from sleekxmpp.plugins.xep_0004 import Form, FormField
+from sleekxmpp.plugins.xep_0004 import Form
 from sleekxmpp import Message
 from rhobot.components.roster import RosterComponent
 from rhobot.components.scheduler import Promise
 from rhobot.components.storage import ResultCollectionPayload, StoragePayload
 from rhobot.components.stanzas.rdf_stanza import RDFStanza, RDFSourceStanza, RDFStanzaType
-import logging
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -140,8 +141,6 @@ class RDFPublish(base_plugin):
         """
         Publish all of the results in the collection to the correct type.
         :param result_collection: collection to publish the results of.
-        :param create: should the results be published as a create.  If this is false, the results will be published
-        as an update.
         :return:
         """
         for res in result_collection.results:
