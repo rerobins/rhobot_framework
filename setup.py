@@ -17,10 +17,10 @@ setup(
     author_email='rerobins@meerkatlabs.org',
     description='Rhobot Core',
     install_requires=[
-        'sleekxmpp==1.4.0',
+        'sleekxmpp==1.4.0.dev0',
         'rdflib==4.2.0',
         'enum34==1.0.4'],
     dependency_links=[
-        'http://github.com/rerobins/SleekXMPP/tarball/rhobot#egg=sleekxmpp-1.4.0',
+        'https://github.com/rerobins/SleekXMPP/tarball/rhobot#egg=sleekxmpp-1.4.0.dev0',
     ]
 )
