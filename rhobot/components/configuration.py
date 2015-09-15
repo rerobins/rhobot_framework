@@ -22,6 +22,8 @@ class ConfigurationStanza(ElementBase):
     name = 'configuration'
     namespace = 'rho:configuration'
     plugin_attrib = 'configuration'
+    interfaces = {}
+    sub_interfaces = {}
 
     def add_entry(self, key, value):
         entry_stanza = EntryStanza()
@@ -57,7 +59,6 @@ class BotConfiguration(base_plugin):
         :return:
         """
         self._configuration = dict()
-        register_stanza_plugin(Item, ConfigurationStanza)
         register_stanza_plugin(ConfigurationStanza, EntryStanza, iterable=True)
         self.xmpp.add_event_handler("session_start", self._start)
 
@@ -141,11 +142,15 @@ class BotConfiguration(base_plugin):
         """
         logger.debug('Received configuration data: %s' % stanza)
 
-        configuration_node = stanza['pubsub']['items']['item']['configuration']
+        configuration_node = None
+        for item in stanza['pubsub']['items']['substanzas']:
+            configuration_node = item.get_payload()
 
-        if 'entries' in configuration_node.keys():
-            for entry in configuration_node['entries']:
-                self._configuration[entry['key']] = entry['value']
+        if configuration_node:
+            configuration = ConfigurationStanza(xml=configuration_node)
+            if 'entries' in configuration.keys():
+                for entry in configuration['entries']:
+                    self._configuration[entry['key']] = entry['value']
 
         self.xmpp.event(self.CONFIGURATION_RECEIVED_EVENT)
 
