@@ -1,7 +1,6 @@
 # Describing RDF Data Types
 
-RDF data types are defined through the use of XEP-0004 Data Forms.  It adds additional elements to the form fields in
-order to provide details as to the values that are defined.
+RDF data types are defined through the use of XEP-0004 Data Forms and XEP-0122 Data Form Validation.
 
 ```xml
 <rdf xmlns="urn:rho:rdf" type="publish_create">
@@ -45,11 +44,11 @@ used as follows:
   <value>http://www.example.org/instances/member_01</value>
   <value>http://www.example.org/instances/member_02</value>
   <value>http://www.example.org/instances/member_03</value>
-  <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+  <validate xmlns="http://jabber.org/protocols/xdata-validate" datatype="xs:anyURI"/>
 </field>
 ```
 
-In this example the `urn:rho:rdf:rdftype.type` value is defined as being rdf:Resource.
+In this example the `validate.datatype` value is defined as being xs:anyURI.
 
 ### Defining Property Fields
 
@@ -58,8 +57,8 @@ Property fields are definitions that can be used to define a specific property o
 ```xml
 <field var="http://xmlns.com/foaf/0.1/name" type="list-multi">
   <value>John Smith</value>
-  <rdftype xmlns="urn:rho:rdf" type="http://www.w3.org/2000/01/rdf-schema#Literal"/>
+  <validate xmlns="http://jabber.org/protocols/xdata-validate" datatype="xs:string"/>
 </field>
 ```
 
-In this example the `urn:rho:rdf:rdftype.type` value is defined as being rdf:Literal.
+In this example the `validate.datatype` value is defined as being xs:string.
