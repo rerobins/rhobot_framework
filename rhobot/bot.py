@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class RhoBot(sleekxmpp.ClientXMPP):
 
-    required_plugins = ['rho_bot_roster', ]
+    required_plugins = ['rho_bot_roster', 'xep_0199', ]
 
     def __init__(self):
         # Set up the configuration details to call the super constructor.
