@@ -16,3 +16,6 @@ LOCATION = Namespace('http://www.w3.org/ns/locn#')
 
 #: Namespace for working with graph data types.
 GRAPH = ClosedNamespace(uri='urn:graph:', terms=['degree'])
+
+#: Namespace for working with intervals
+TIMELINE = Namespace('http://purl.org/NET/c4dm/timeline.owl#')
