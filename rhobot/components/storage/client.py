@@ -24,7 +24,7 @@ class StorageClient(base_plugin):
     """
 
     name = 'rho_bot_storage_client'
-    dependencies = {'xep_0050', 'rho_bot_scheduler', }
+    dependencies = {'xep_0050', 'xep_0122', 'rho_bot_scheduler', }
     description = 'RHO: Storage Client Plugin'
 
     def plugin_init(self):
