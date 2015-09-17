@@ -5,7 +5,9 @@ import json
 import sleekxmpp
 import os
 from rhobot import configuration
+from rhobot.components import register_core_plugins
 
+# Configure all of the logging.
 if os.path.exists('logging.json'):
     with open('logging.json', 'rt') as f:
         config = json.load(f)
@@ -13,29 +15,32 @@ if os.path.exists('logging.json'):
 else:
     logging.basicConfig()
 
+# Register all of the core plugins.
+register_core_plugins()
+
+# Configure the logging for this file.
 logger = logging.getLogger(__name__)
 
 
 class RhoBot(sleekxmpp.ClientXMPP):
 
+    required_plugins = ['rho_bot_roster', ]
+
     def __init__(self):
+        # Set up the configuration details to call the super constructor.
         jid = configuration.get_configuration().get(configuration.CONNECTION_SECTION_NAME,
                                                     configuration.JID_KEY)
         password = configuration.get_configuration().get(configuration.CONNECTION_SECTION_NAME,
                                                          configuration.PASSWORD_KEY)
         sleekxmpp.ClientXMPP.__init__(self, jid, password)
 
+        # Set up the configuration details for the name of the bot.
         self.name = configuration.get_configuration().get(configuration.BOT_SECTION_NAME,
                                                           configuration.NAME_KEY)
 
-        self.register_plugin('xep_0122')  # XMPP Data form validation
-        self.register_plugin('xep_0199')  # XMPP Ping
-        self.register_plugin('rho_bot_scheduler', module='rhobot.components')
-        self.register_plugin('rho_bot_configuration', module='rhobot.components')
-        self.register_plugin('rho_bot_roster', module='rhobot.components')
-        self.register_plugin('reset_configuration', module='rhobot.components.commands')
-        self.register_plugin('export_configuration', module='rhobot.components.commands')
-        self.register_plugin('import_configuration', module='rhobot.components.commands')
+        # Register the plugins
+        for plugin in self.required_plugins:
+            self.register_plugin(plugin)
 
         # The session_start event will be triggered when
         # the bot establishes its connection with the server
@@ -64,6 +69,14 @@ class RhoBot(sleekxmpp.ClientXMPP):
         :return:
         """
         return 'xmpp:%s' % self.boundjid.bare
+
+    def add_required_plugin(self, *plugin_names):
+        """
+        Add a list of required plugins for the bot.
+        :param plugin_names: plugin names.
+        :return:
+        """
+        self.plugin_whitelist += plugin_names
 
 
 if __name__ == '__main__':
