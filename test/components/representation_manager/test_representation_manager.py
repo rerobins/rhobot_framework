@@ -9,14 +9,13 @@ from sleekxmpp.test import SleekTest
 class TestRepresentationManager(SleekTest):
 
     def setUp(self):
+        from rhobot.components import register_core_plugins
+        register_core_plugins()
+
         self.session = {}
-        self.stream_start(plugins=['xep_0050'])
-        self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_configuration', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_roster', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_rdf_publish', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_storage_client', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_representation_manager', module='rhobot.components')
+        self.stream_start(plugins=['xep_0050', 'rho_bot_scheduler', 'rho_bot_configuration', 'rho_bot_roster',
+                                   'rho_bot_rdf_publish', 'rho_bot_storage_client', 'rho_bot_representation_manager',])
+
         self.scheduler = self.xmpp['rho_bot_scheduler']
         self.rdf_publish = self.xmpp['rho_bot_rdf_publish']
         self.storage_client = self.xmpp['rho_bot_storage_client']

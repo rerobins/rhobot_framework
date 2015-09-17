@@ -9,10 +9,11 @@ import time
 class ConfigurationComponentTestCase(SleekTest):
 
     def setUp(self):
+        from rhobot.components import register_core_plugins
+        register_core_plugins()
+
         self.session = {}
-        self.stream_start(plugins=['xep_0060'])
-        self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_configuration', module='rhobot.components')
+        self.stream_start(plugins=['xep_0060', 'rho_bot_scheduler', 'rho_bot_configuration', ])
         self.scheduler = self.xmpp['rho_bot_scheduler']
 
         self.xmpp['rho_bot_configuration'].plugin_init()

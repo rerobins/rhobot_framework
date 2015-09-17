@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 
 class ImportConfiguration(BaseCommand):
 
-    def initialize_command(self):
-        super(ImportConfiguration, self).initialize_command()
+    name = 'import_configuration'
+    description = 'Import Configuration'
+    dependencies = BaseCommand.default_dependencies.union(({'rho_bot_configuration', }))
 
-        logger.info('Initialize Command')
-        self._initialize_command(identifier='import_configuration', name='Import Configuration',
-                                 additional_dependencies={'rho_bot_configuration'})
+    def post_init(self):
+        self._configuration = self.xmpp['rho_bot_configuration']
 
     def command_start(self, request, initial_session):
         """
@@ -26,11 +26,11 @@ class ImportConfiguration(BaseCommand):
         :param initial_session:
         :return:
         """
-        configuration_object = self.xmpp['rho_bot_configuration'].get_configuration()
+        configuration_object = self._configuration.get_configuration()
 
         configuration_string = json.dumps(configuration_object)
 
-        form = self.xmpp['xep_0004'].make_form(ftype='form')
+        form = self._forms.make_form(ftype='form')
 
         form.add_field(var='content', ftype='text-multi', label='Content', value=configuration_string)
 
@@ -44,7 +44,7 @@ class ImportConfiguration(BaseCommand):
 
         configuration_dictionary = json.loads(request['values']['content'])
 
-        configuration_object = self.xmpp['rho_bot_configuration'].get_configuration()
+        configuration_object = self._configuration.get_configuration()
         configuration_object.clear()
 
         configuration_object.update(configuration_dictionary)
@@ -52,6 +52,7 @@ class ImportConfiguration(BaseCommand):
         self.xmpp['rho_bot_configuration'].store_data()
 
         session['notes'] = (('info', 'Results imported to database',),)
+        session['payload'] = None
         session['has_next'] = False
         session['next'] = None
 

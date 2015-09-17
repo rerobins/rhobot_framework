@@ -7,12 +7,14 @@ import time
 class ExportConfigurationTestCase(SleekTest):
 
     def setUp(self):
+
+        from rhobot.components import register_core_plugins
+
+        register_core_plugins()
+
         self.session = {}
-        self.stream_start(plugins=['xep_0050'])
-        self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_configuration', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_roster', module='rhobot.components')
-        self.xmpp.register_plugin('export_configuration', module='rhobot.components.commands')
+        self.stream_start(plugins=['rho_bot_scheduler', 'rho_bot_configuration', 'rho_bot_roster',
+                                   'export_configuration', ])
 
         self.scheduler = self.xmpp['rho_bot_scheduler']
         self.configuration = self.xmpp['rho_bot_configuration']

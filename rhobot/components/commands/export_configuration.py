@@ -14,12 +14,9 @@ logger = logging.getLogger(__name__)
 
 class ExportConfiguration(BaseCommand):
 
-    def initialize_command(self):
-        super(ExportConfiguration, self).initialize_command()
-
-        logger.info('Initialize Command')
-        self._initialize_command(identifier='export_configuration', name='Export Configuration',
-                                 additional_dependencies={'rho_bot_configuration'})
+    name = 'export_configuration'
+    description = 'Export Configuration'
+    dependencies = BaseCommand.default_dependencies.union({'rho_bot_configuration', })
 
     def command_start(self, request, initial_session):
         """

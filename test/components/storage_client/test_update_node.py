@@ -10,10 +10,12 @@ import time
 class UpdateNodeTestCase(SleekTest):
 
     def setUp(self):
+
+        from rhobot.components import register_core_plugins
+        register_core_plugins()
+
         self.session = {}
-        self.stream_start(plugins=['xep_0050', 'xep_0122'])
-        self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
-        self.xmpp.register_plugin('rho_bot_storage_client', module='rhobot.components')
+        self.stream_start(plugins=['rho_bot_storage_client', ])
         self.scheduler = self.xmpp['rho_bot_scheduler']
         self.storage_client = self.xmpp['rho_bot_storage_client']
 

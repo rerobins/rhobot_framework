@@ -9,10 +9,12 @@ class ResetConfiguration(BaseCommand):
     Command that will reset the configuration details of the bot.
     """
 
-    def initialize_command(self):
-        logger.info('Initialize Command')
-        self._initialize_command(identifier='reset_configuration', name='Reset Configuration',
-                                 additional_dependencies={'rho_bot_configuration'})
+    name = 'reset_configuration'
+    description = 'Reset Configuration'
+    dependencies = BaseCommand.default_dependencies.union(({'rho_bot_configuration', }))
+
+    def post_init(self):
+        self._configuration = self.xmpp['rho_bot_configuration']
 
     def command_start(self, request, initial_session):
         """
@@ -21,7 +23,7 @@ class ResetConfiguration(BaseCommand):
         :param initial_session:
         :return:
         """
-        form = self.xmpp['xep_0004'].make_form()
+        form = self._forms.make_form()
 
         form.add_field(var='login', ftype='fixed', label='Access Login',
                        desc='Authorization URL',
@@ -41,11 +43,12 @@ class ResetConfiguration(BaseCommand):
         :param session:
         :return:
         """
-        logger.info('Reset Configuration')
-        configuration = self.xmpp['rho_bot_configuration'].get_configuration()
+        configuration = self._configuration.get_configuration()
         configuration.clear()
 
-        self.xmpp['rho_bot_configuration'].store_data()
+        self._configuration.store_data()
+
+        session['payload'] = None
 
         return session
 

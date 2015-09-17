@@ -1,10 +1,7 @@
 import unittest
+
 import mock
 from rhobot.components.storage.client import rho_bot_storage_client
-from rhobot.components.storage import StoragePayload, ResultCollectionPayload, ResultPayload
-from rhobot.components.storage.enums import Commands
-from rhobot.namespace import RHO
-from rdflib.namespace import FOAF, RDF, RDFS
 
 
 class ClientTestCase(unittest.TestCase):

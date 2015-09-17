@@ -15,9 +15,12 @@ class Promise_2_2_2_1_TestCase(SleekTest):
     sentinel = {'sentinel': 'sentinel'}
 
     def setUp(self):
+        from rhobot.components import register_core_plugins
+
+        register_core_plugins()
+
         self.session = {}
-        self.stream_start(plugins=[])
-        self.xmpp.register_plugin('rho_bot_scheduler', module='rhobot.components')
+        self.stream_start(plugins=['rho_bot_scheduler', ])
         self.scheduler = self.xmpp['rho_bot_scheduler']
 
     def tearDown(self):
