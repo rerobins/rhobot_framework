@@ -35,7 +35,7 @@ class RDFPublish(base_plugin):
 
     name = 'rho_bot_rdf_publish'
     dependencies = {'rho_bot_roster', 'rho_bot_scheduler', }
-    description = 'Configuration Plugin'
+    description = 'RHO: Configuration Plugin'
 
     def plugin_init(self):
         """

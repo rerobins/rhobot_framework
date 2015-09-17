@@ -18,7 +18,7 @@ class RepresentationManager(base_plugin):
 
     name = 'rho_bot_representation_manager'
     dependencies = {'rho_bot_storage_client', 'rho_bot_rdf_publish', }
-    description = 'Representation Manager'
+    description = 'RHO: Representation Manager'
 
     def plugin_init(self):
         """

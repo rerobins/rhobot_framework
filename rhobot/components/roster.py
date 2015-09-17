@@ -19,7 +19,7 @@ class RosterComponent(base_plugin):
 
     name = 'rho_bot_roster'
     dependencies = {'xep_0045', 'rho_bot_configuration'}
-    description = 'Roster Plugin'
+    description = 'RHO: Roster Plugin'
 
     def plugin_init(self):
         self._channel_name = None

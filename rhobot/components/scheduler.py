@@ -189,7 +189,7 @@ class Scheduler(base_plugin):
 
     name = 'rho_bot_scheduler'
     dependencies = {}
-    description = 'Scheduling Plugin'
+    description = 'RHO: Scheduling Plugin'
 
     def plugin_init(self):
         """

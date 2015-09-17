@@ -51,7 +51,7 @@ class BotConfiguration(base_plugin):
     _configuration_data_node = 'rho:configuration'
     name = 'rho_bot_configuration'
     dependencies = {'xep_0060', 'rho_bot_scheduler', }
-    description = 'Configuration Plugin'
+    description = 'RHO: Configuration Plugin'
 
     def plugin_init(self):
         """
