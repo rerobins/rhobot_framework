@@ -27,4 +27,4 @@ between bots in the system, and abstractions to ease the development of commands
 
 ## License
 
-This framework is released under the Simplified BSD License.
+This framework is released under the New BSD License.
