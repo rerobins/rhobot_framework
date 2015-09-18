@@ -75,7 +75,7 @@ class RosterComponent(base_plugin):
         Send a message to the channel.
         :param body: body of the message.
         :param payload: payload that should be appended to the message.
-        :param thread_id: threadi identifier if necessary.
+        :param thread_id: thread identifier if necessary.
         :return: None
         """
         message = self.xmpp.make_message(mto=self._channel_name, mbody=body, mtype='groupchat')

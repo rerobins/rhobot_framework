@@ -9,6 +9,7 @@ from rhobot.components.commands import export_configuration, import_configuratio
 
 from sleekxmpp.plugins.base import register_plugin
 
+
 def register_core_plugins():
     """
     Register the core plugins for the system.
