@@ -19,7 +19,9 @@ setup(
     install_requires=[
         'sleekxmpp==1.4.0.dev0',
         'rdflib==4.2.0',
-        'enum34==1.0.4'],
+        'enum34==1.0.4',
+        'python-daemon==2.0.6'
+    ],
     dependency_links=[
         'https://github.com/rerobins/SleekXMPP/tarball/rhobot#egg=sleekxmpp-1.4.0.dev0',
     ],
