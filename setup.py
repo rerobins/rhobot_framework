@@ -22,5 +22,6 @@ setup(
         'enum34==1.0.4'],
     dependency_links=[
         'https://github.com/rerobins/SleekXMPP/tarball/rhobot#egg=sleekxmpp-1.4.0.dev0',
-    ]
+    ],
+    scripts=['bin/rho', 'bin/rho_daemon']
 )

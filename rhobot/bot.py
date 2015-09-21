@@ -1,11 +1,8 @@
 import logging
-import logging.config
-import json
-
 import sleekxmpp
-import os
 from rhobot import configuration
 from rhobot.components import register_core_plugins
+
 
 # Register all of the core plugins.
 register_core_plugins()

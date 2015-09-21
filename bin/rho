@@ -5,6 +5,20 @@ arguments.
 import optparse
 from rhobot import configuration
 import logging
+import logging.config
+import os
+import json
+import sys
+
+sys.path.insert(0, os.path.abspath(os.getcwd()))
+
+# Configure all of the logging.
+if os.path.exists('logging.json'):
+    with open('logging.json', 'rt') as f:
+        config = json.load(f)
+        logging.config.dictConfig(config)
+else:
+    logging.basicConfig()
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +32,18 @@ print 'Loading configuration file: %s' % options.filename
 configuration.load_file(options.filename)
 
 # Find the application object from the overridden load script.
-if len(args) != 1:
+file_name = None
+if len(args) != 1 and os.getenv('EXECUTION_FILE', None) is None:
     parser.error('Must provide a execution file to load.')
+elif len(args) == 1:
+    file_name = args[0]
+else:
+    file_name = os.getenv('EXECUTION_FILE')
 
 # Load the execution file.
-file_pointer = open(args[0])
+file_pointer = open(file_name)
 
-variables = {'__file__': args[0], }
+variables = {'__file__': file_name, }
 
 exec file_pointer in variables, variables
 
