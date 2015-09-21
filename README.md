@@ -11,7 +11,7 @@ Rho Core library relies heavily on a slightly modified version of SleekXMPP.
 This package can be installed into virtual environments through pip, by using 
 
 ```bash
-pip install -e https://github.com/MeerkatLabs/rhobot.git
+pip install -e https://github.com/rerobins/rhobot_framework.git
 ```
 
 ## Contribution
