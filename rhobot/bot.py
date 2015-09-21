@@ -7,14 +7,6 @@ import os
 from rhobot import configuration
 from rhobot.components import register_core_plugins
 
-# Configure all of the logging.
-if os.path.exists('logging.json'):
-    with open('logging.json', 'rt') as f:
-        config = json.load(f)
-        logging.config.dictConfig(config)
-else:
-    logging.basicConfig()
-
 # Register all of the core plugins.
 register_core_plugins()
 
@@ -32,6 +24,9 @@ class RhoBot(sleekxmpp.ClientXMPP):
                                                     configuration.JID_KEY)
         password = configuration.get_configuration().get(configuration.CONNECTION_SECTION_NAME,
                                                          configuration.PASSWORD_KEY)
+
+        logger.info('Attempting to configure with: %s %s' % (jid, password))
+
         sleekxmpp.ClientXMPP.__init__(self, jid, password)
 
         # Set up the configuration details for the name of the bot.

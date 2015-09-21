@@ -2,6 +2,9 @@
 Install the configuration details for the application.
 """
 import ConfigParser
+import logging
+
+logger = logging.getLogger(__name__)
 
 _configuration_parser = ConfigParser.ConfigParser()
 
@@ -29,6 +32,7 @@ def load_file(filename):
     :return:
     """
     global _configuration_parser
+    logger.info('Loading configuration: %s' % filename)
     _configuration_parser.read(filename)
 
 # Install the default parameters.
