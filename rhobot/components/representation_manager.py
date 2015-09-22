@@ -6,6 +6,7 @@ import logging
 from sleekxmpp.plugins.base import base_plugin
 from rhobot.components.storage.events import STORAGE_FOUND
 from rhobot.components.storage import StoragePayload
+from rhobot.components.storage.enums import UpdateFlags
 from rdflib.namespace import RDFS, FOAF
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,8 @@ class RepresentationManager(base_plugin):
         """
         payload = self._create_payload()
         payload.about = node_identifier
+
+        payload.add_flag(UpdateFlags.REPLACE_DEFINED, True)
 
         promise = self._storage_client.update_node(payload).then(self._publish_update)
 
