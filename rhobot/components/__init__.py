@@ -5,6 +5,7 @@ from rhobot.components.storage.client import rho_bot_storage_client
 from rhobot.components.rdf_publish import rho_bot_rdf_publish
 from rhobot.components.representation_manager import rho_bot_representation_manager
 from rhobot.components.get_or_lookup import rho_bot_get_or_lookup
+from rhobot.components.get_or_create import rho_bot_get_or_create
 from rhobot.components.commands import export_configuration, import_configuration, reset_configuration
 
 from sleekxmpp.plugins.base import register_plugin
@@ -22,6 +23,7 @@ def register_core_plugins():
     register_plugin(rho_bot_rdf_publish)
     register_plugin(rho_bot_representation_manager)
     register_plugin(rho_bot_get_or_lookup)
+    register_plugin(rho_bot_get_or_create)
     register_plugin(export_configuration)
     register_plugin(import_configuration)
     register_plugin(reset_configuration)
