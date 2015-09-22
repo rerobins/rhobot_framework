@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='rhobot',
-    version='1.0.0',
+    version='1.1.0dev1',
     packages=[
         'rhobot',
         'rhobot.components',
