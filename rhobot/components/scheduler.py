@@ -49,7 +49,7 @@ class Deferred:
         """
         return self._promise
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self):
         logger.debug('Executing call method: %s' % self._method_call)
 
         try:
@@ -182,6 +182,53 @@ class Promise:
         self._queue = None
 
 
+class _PromiseList:
+    """
+    Create a single promise that will be resolved or rejected when all of the defined promises are completed.
+    """
+
+    def __init__(self, promises, scheduler):
+        """
+        Constructor that will create all of the book keeping.
+        """
+        self._promises = promises
+        self._results = []
+        self._resolved = []
+        self._errors = False
+        self._scheduler = scheduler
+        self._promise = scheduler.promise()
+
+        for index, promise in enumerate(self._promises):
+            self._results.append(None)
+            self._resolved.append(False)
+            promise.then(scheduler.generate_promise_handler(self._resolve_promise, index),
+                         scheduler.generate_promise_handler(self._reject_promise, index))
+
+    def _resolve_promise(self, result, index):
+        """
+        One of the sub promises was resolved/rejected so store the result and determine if all of the work is finished.
+        """
+        self._results[index] = result
+        self._resolved[index] = True
+
+        if False not in self._resolved:
+            if self._errors:
+                self._promise.rejected(self._results)
+            else:
+                self._promise.resolved(self._results)
+
+    def _reject_promise(self, result, index):
+        """
+        Mark that this promise should be rejected once all of the values are returned.
+        """
+        self._errors = True
+        self._resolve_promise(result, index)
+
+    @property
+    def promise(self):
+        return self._promise
+
+
 class Scheduler(base_plugin):
     """
     Scheduler plugin that will wrap the scheduling functionality for the bots that are being defined.
@@ -268,6 +315,12 @@ class Scheduler(base_plugin):
             return method(result, *args, **kwargs)
 
         return new_method
+
+    def create_promise_list(self, *promises):
+        """
+        Create a promise list based on the promises provided.
+        """
+        return _PromiseList(promises, self).promise
 
 
 # Define the plugin that will be used to access this plugin.
